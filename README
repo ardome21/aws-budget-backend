@@ -1,0 +1,21 @@
+# Budget Application (AWS Implementation)
+
+This project code required to deploy and run a budget application
+supported by AWS.
+
+## Quick Start
+1. Run `./build-layer.sh` to build the layer
+2. Add zip folder to AWS lambda layers
+    Future enhancement: create deploy.sh to deploy lambda layers
+3. Add the layer to your Lambda functions
+
+## Requirements
+- Docker
+- Bash
+
+## Manual Build
+```bash
+docker build -t plaid-layer .
+docker create --name temp-plaid-layer plaid-layer
+docker cp temp-plaid-layer:/plaid_layer.zip ./plaid_layer.zip
+docker rm temp-plaid-layer
