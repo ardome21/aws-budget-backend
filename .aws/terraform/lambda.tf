@@ -1,6 +1,6 @@
 data "archive_file" "login_lambda_zip" {
   type        = "zip"
-  source_file = "../../lambda/auth/Login/lambda_function.py"  # Adjust path to your login Python script
+  source_file = "../../lambdas/auth/Login/lambda_function.py"  # Adjust path to your login Python script
   output_path = "../../output/login_lambda.zip"
 }
 
