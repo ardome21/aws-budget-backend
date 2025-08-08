@@ -1,13 +1,13 @@
 data "archive_file" "login_lambda_zip" {
   type        = "zip"
-  source_file = "../../lambdas/auth/Login/lambda_function.py"  # Adjust path to your login Python script
+  source_file = "../../lambdas/auth/Login/lambda_function.py"
   output_path = "../../output/login_lambda.zip"
 }
 
 resource "aws_lambda_function" "login_lambda" {
-  function_name = "budget-login-deployed"
+  function_name = var.lambda_function_name
   role         = var.existing_iam_role_arn
-  handler      = "login.handler"  # Assuming your function is named 'handler' in login.py
+  handler      = "login.handler"
   runtime      = "python3.11"
   
   filename         = data.archive_file.login_lambda_zip.output_path

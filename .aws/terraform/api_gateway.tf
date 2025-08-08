@@ -12,7 +12,7 @@ resource "aws_apigatewayv2_api" "login_api" {
 
   tags = {
     Name        = var.api_name
-    Environment = "production"
+    Environment = "dev"
   }
 }
 
@@ -51,7 +51,7 @@ resource "aws_apigatewayv2_stage" "default" {
 
   tags = {
     Name        = "${var.api_name}-default-stage"
-    Environment = "production"
+    Environment = "dev"
   }
 }
 
