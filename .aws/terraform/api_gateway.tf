@@ -4,8 +4,8 @@ resource "aws_apigatewayv2_api" "login_api" {
   description   = "API Gateway for login functionality"
   
   cors_configuration {
-    allow_origins     = ["*"]  # Restrict this in production
-    allow_methods     = ["POST", "OPTIONS"]
+    allow_origins     = ["http://localhost:4200"]  # Restrict this in production
+    allow_methods     = ["POST", "GET", "OPTIONS"]
     allow_headers     = ["content-type", "authorization"]
     max_age          = 86400
   }
@@ -28,14 +28,21 @@ resource "aws_apigatewayv2_integration" "login_lambda_integration" {
 # Login endpoint
 resource "aws_apigatewayv2_route" "login_post" {
   api_id    = aws_apigatewayv2_api.login_api.id
-  route_key = "POST /login"
+  route_key = "POST /login_lambda"
+  target    = "integrations/${aws_apigatewayv2_integration.login_lambda_integration.id}"
+}
+
+# Log back in endpoint
+resource "aws_apigatewayv2_route" "login_get" {
+  api_id    = aws_apigatewayv2_api.login_api.id
+  route_key = "GET /login_lambda"
   target    = "integrations/${aws_apigatewayv2_integration.login_lambda_integration.id}"
 }
 
 # CORS preflight for login endpoint
 resource "aws_apigatewayv2_route" "login_options" {
   api_id    = aws_apigatewayv2_api.login_api.id
-  route_key = "OPTIONS /login"
+  route_key = "OPTIONS /login_lambda"
   target    = "integrations/${aws_apigatewayv2_integration.login_lambda_integration.id}"
 }
 
