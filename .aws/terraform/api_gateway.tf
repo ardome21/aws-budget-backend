@@ -28,21 +28,21 @@ resource "aws_apigatewayv2_integration" "login_lambda_integration" {
 # Login endpoint
 resource "aws_apigatewayv2_route" "login_post" {
   api_id    = aws_apigatewayv2_api.login_api.id
-  route_key = "POST /login_lambda"
+  route_key = "POST /login"
   target    = "integrations/${aws_apigatewayv2_integration.login_lambda_integration.id}"
 }
 
 # Log back in endpoint
 resource "aws_apigatewayv2_route" "login_get" {
   api_id    = aws_apigatewayv2_api.login_api.id
-  route_key = "GET /login_lambda"
+  route_key = "GET /login"
   target    = "integrations/${aws_apigatewayv2_integration.login_lambda_integration.id}"
 }
 
 # CORS preflight for login endpoint
 resource "aws_apigatewayv2_route" "login_options" {
   api_id    = aws_apigatewayv2_api.login_api.id
-  route_key = "OPTIONS /login_lambda"
+  route_key = "OPTIONS /login"
   target    = "integrations/${aws_apigatewayv2_integration.login_lambda_integration.id}"
 }
 
