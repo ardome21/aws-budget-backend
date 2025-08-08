@@ -13,5 +13,5 @@ provider "aws" {
 }
 
 data "aws_iam_role" "existing_app_role" {
-  name = split("/", var.existing_iam_role_arn)[1]  # Extract role name from ARN
+  name = split("/", var.existing_iam_role_arn)[1]
 }
