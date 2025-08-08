@@ -42,8 +42,8 @@ module "auth_api" {
     {
       method            = "OPTIONS"
       path              = "/verify-account"
-      lambda_name       = module.verify_account_lambdafunction_name
-      lambda_invoke_arn = module.lverify_account_lambda.invoke_arn
+      lambda_name       = module.verify_account_lambda.function_name
+      lambda_invoke_arn = module.verify_account_lambda.invoke_arn
     },
   ]
 }
