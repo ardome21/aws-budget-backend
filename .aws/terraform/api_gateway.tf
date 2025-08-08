@@ -4,7 +4,8 @@ resource "aws_apigatewayv2_api" "login_api" {
   description   = "API Gateway for login functionality"
   
   cors_configuration {
-    allow_origins     = ["http://localhost:4200"]  # Restrict this in production
+    allow_origins     = ["http://localhost:4200"]
+    allow_credentials = true
     allow_methods     = ["POST", "GET", "OPTIONS"]
     allow_headers     = ["content-type", "authorization"]
     max_age          = 86400
