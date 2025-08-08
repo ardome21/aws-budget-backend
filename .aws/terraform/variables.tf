@@ -9,12 +9,6 @@ variable "existing_iam_role_arn" {
   type        = string
 }
 
-variable "lambda_function_name" {
-  description = "Name of the login Lambda function"
-  type        = string
-  default     = "login-function-deployed"
-}
-
 variable "api_name" {
   description = "Name of the API Gateway"
   type        = string

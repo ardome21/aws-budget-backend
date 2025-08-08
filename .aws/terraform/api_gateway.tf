@@ -1,3 +1,22 @@
+# API Gateway stage
+resource "aws_apigatewayv2_stage" "default" {
+  api_id      = aws_apigatewayv2_api.login_api.id
+  name        = "$default"
+  auto_deploy = true
+  
+  default_route_settings {
+    throttling_rate_limit  = 100
+    throttling_burst_limit = 50
+  }
+
+  tags = {
+    Name        = "${var.api_name}-default-stage"
+    Environment = "dev"
+  }
+}
+
+
+# Login API
 resource "aws_apigatewayv2_api" "login_api" {
   name          = var.api_name
   protocol_type = "HTTP"
@@ -17,6 +36,7 @@ resource "aws_apigatewayv2_api" "login_api" {
   }
 }
 
+# What is this?
 resource "aws_apigatewayv2_integration" "login_lambda_integration" {
   api_id             = aws_apigatewayv2_api.login_api.id
   integration_type   = "AWS_PROXY"
@@ -47,22 +67,7 @@ resource "aws_apigatewayv2_route" "login_options" {
   target    = "integrations/${aws_apigatewayv2_integration.login_lambda_integration.id}"
 }
 
-resource "aws_apigatewayv2_stage" "default" {
-  api_id      = aws_apigatewayv2_api.login_api.id
-  name        = "$default"
-  auto_deploy = true
-  
-  default_route_settings {
-    throttling_rate_limit  = 100
-    throttling_burst_limit = 50
-  }
-
-  tags = {
-    Name        = "${var.api_name}-default-stage"
-    Environment = "dev"
-  }
-}
-
+# Lambda Permissions for Login
 resource "aws_lambda_permission" "allow_api_gateway_login" {
   statement_id  = "AllowAPIGatewayInvokeLogin"
   action        = "lambda:InvokeFunction"
