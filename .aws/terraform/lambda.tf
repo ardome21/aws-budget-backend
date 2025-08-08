@@ -7,7 +7,7 @@ data "archive_file" "login_lambda_zip" {
 resource "aws_lambda_function" "login_lambda" {
   function_name = var.lambda_function_name
   role         = var.existing_iam_role_arn
-  handler      = "login.handler"
+  handler      = "lambda_function.lambda_handler"
   runtime      = "python3.11"
   
   filename         = data.archive_file.login_lambda_zip.output_path
