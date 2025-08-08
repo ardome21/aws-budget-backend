@@ -8,13 +8,12 @@ resource "aws_apigatewayv2_stage" "default" {
     throttling_rate_limit  = 100
     throttling_burst_limit = 50
   }
-
+  
   tags = {
     Name        = "${var.api_name}-default-stage"
     Environment = "dev"
   }
 }
-
 
 # Login API
 resource "aws_apigatewayv2_api" "login_api" {
@@ -29,19 +28,17 @@ resource "aws_apigatewayv2_api" "login_api" {
     allow_headers     = ["content-type", "authorization"]
     max_age          = 86400
   }
-
+  
   tags = {
     Name        = var.api_name
     Environment = "dev"
   }
 }
 
-# What is this?
 resource "aws_apigatewayv2_integration" "login_lambda_integration" {
   api_id             = aws_apigatewayv2_api.login_api.id
   integration_type   = "AWS_PROXY"
-  integration_uri    = module.login_lambda.lambda_function_arn
-  integration_method = "POST"
+  integration_uri    = module.login_lambda.invoke_arn
   payload_format_version = "2.0"
   timeout_milliseconds = 30000
 }
