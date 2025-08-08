@@ -15,7 +15,7 @@ CORS_HEADERS = {
 }
 
 dynamodb = boto3.resource('dynamodb')
-userTable = dynamodb.Table('budget-users')
+userTable = dynamodb.Table('users-dev')
 
 
 def check_password(password: str, stored_hash: str) -> bool:
