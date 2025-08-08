@@ -1,5 +1,4 @@
 variable "lambda_name" {}
-variable "lambda_handler" {}
 variable "lambda_filename" {}
 variable "existing_iam_role_arn" {}
 variable "lambda_layers" {
@@ -7,10 +6,10 @@ variable "lambda_layers" {
   default = []
 }
 
-resource "aws_lambda_function" "login_lambda" {
+resource "aws_lambda_function" "template_lambda" {
   function_name = var.lambda_name
   role          = var.existing_iam_role_arn
-  handler       = var.lambda_handler
+  handler       = "main.lambda_hander"
   runtime       = "python3.11"
   filename      = var.lamdba_filename
   layers        = var.lambda_layers
