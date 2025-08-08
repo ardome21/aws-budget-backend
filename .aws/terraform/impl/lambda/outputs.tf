@@ -1,14 +1,14 @@
 output "lambda_function_arn" {
   description = "ARN of the Lambda function"
-  value       = module.login_lambda.arn
+  value       = aws_lambda_function.this.arn
 }
 
 output "function_name" {
   description = "Name of the Lambda function"
-  value       = module.login_lambda.function_name
+  value       = aws_lambda_function.this.function_name
 }
 
 output "invoke_arn" {
   description = "Invoke ARN of the Lambda function for API Gateway"
-  value       = module.login_lambda.invoke_arn
+  value       = aws_lambda_function.this.invoke_arn
 }
