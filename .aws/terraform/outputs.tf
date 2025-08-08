@@ -1,0 +1,24 @@
+output "login_api_url" {
+  description = "URL of the login API"
+  value       = "${aws_apigatewayv2_stage.default.invoke_url}/login"
+}
+
+output "api_gateway_full_url" {
+  description = "Full URL of the API Gateway"
+  value       = aws_apigatewayv2_stage.default.invoke_url
+}
+
+output "lambda_function_name" {
+  description = "Name of the login Lambda function"
+  value       = aws_lambda_function.login_lambda.function_name
+}
+
+output "lambda_function_arn" {
+  description = "ARN of the login Lambda function"
+  value       = aws_lambda_function.login_lambda.arn
+}
+
+output "bcrypt_layer_arn" {
+  description = "ARN of the bcrypt layer"
+  value       = aws_lambda_layer_version.bcrypt_layer.arn
+}

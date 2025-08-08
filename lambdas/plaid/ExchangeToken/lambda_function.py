@@ -25,10 +25,6 @@ def exchange_public_token(client, public_token):
     }
 
 def lambda_handler(event, context):
-    
-    print("Event:", json.dumps(event, indent=2))
-    
-    # Handle preflight OPTIONS request (works for both API Gateway v1.0 and v2.0)
     http_method = event.get('httpMethod') or event.get('requestContext', {}).get('http', {}).get('method')
     print(f"HTTP Method detected: {http_method}")
     
@@ -41,30 +37,42 @@ def lambda_handler(event, context):
         }
     
     try:
-        print("Event:", json.dumps(event, indent=2))
-        secrets_client = boto3.client("secretsmanager", region_name="us-east-1")
-        secret_value = secrets_client.get_secret_value(SecretId="plaid")
-        secret = json.loads(secret_value["SecretString"])
-        
+        http_method = event.get('httpMethod') or event.get(
+            'requestContext', {}).get('http', {}).get('method')
+        if http_method == 'OPTIONS':
+            print("Handling OPTIONS preflight request")
+            return
+
+        ssm_client = boto3.client('ssm')
+        client_id = ssm_client.get_parameter(Name='/budget/plaid/client_id', WithDecryption=True)['Parameter']['Value']
+        sandbox_secret = ssm_client.get_parameter(Name='/budget/plaid/sandbox_secret', WithDecryption=True)['Parameter']['Value']
+
         configuration = Configuration(
             host=Environment.Sandbox,
             api_key={
-                'clientId': secret['client_id'],
-                'secret': secret['sandbox_secret']
+                'clientId': client_id,
+                'secret': sandbox_secret
             }
         )
         api_client = ApiClient(configuration)
         client = plaid_api.PlaidApi(api_client)
+        if not client:
+            raise Exception("Plaid client not initialized")
+        print(f"Plaid client initialized")
         
         if isinstance(event['body'], str):
             body = json.loads(event['body'])
         else:
             body = event['body']
         public_token = body['public_token']
+        if  not public_token:
+            raise Exception("No public token provided")
+        print(f"Public token received: {public_token}")
         
-        tokens = exchange_public_token(client, public_token)
-        print(f"Tokens: {tokens}")
-        
+        tokens = exchange_public_token(client, public_token) 
+        if not (tokens and tokens['access_token'] and tokens['item_id']):
+            raise Exception("No tokens received")
+        print(f"Tokens received: {tokens}")       
         return {
             'statusCode': 200,
             'headers': CORS_HEADERS,
