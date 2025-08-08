@@ -32,7 +32,7 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: ./terraform
+        working-directory: /.aws/terraform
     
     steps:
     - name: Checkout
@@ -51,7 +51,6 @@ jobs:
         terraform_version: ${{ env.TF_VERSION }}
     
     - name: Create terraform.tfvars
-      working-directory: .aws/terraform
       run: |
         cat > terraform.tfvars << EOF
         aws_region = "${{ env.AWS_REGION }}"
@@ -63,7 +62,6 @@ jobs:
     #   continue-on-error: true
     
     - name: Terraform Init
-      working-directory: .aws/terraform
       id: init
       run: terraform init
     
@@ -72,7 +70,6 @@ jobs:
     #   run: terraform validate -no-color
     
     - name: Terraform Plan
-      working-directory: .aws/terraform
       run: terraform plan
     
     # - name: Update Pull Request
@@ -110,7 +107,6 @@ jobs:
     #   run: exit 1
     
     - name: Terraform Apply
-      working-directory: .aws/terraform
       run: terraform apply -auto-approve
     
     - name: Output API URL
