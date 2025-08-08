@@ -1,7 +1,7 @@
 data "archive_file" "login_lambda_zip" {
   type        = "zip"
-  source_file = "../lambda/login.py"  # Adjust path to your login Python script
-  output_path = "../output/login_lambda.zip"
+  source_file = "./.../lambda/login.py"  # Adjust path to your login Python script
+  output_path = "../../output/login_lambda.zip"
 }
 
 resource "aws_lambda_function" "login_lambda" {
