@@ -32,7 +32,7 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: /.aws/terraform
+        working-directory: .aws/terraform
     
     steps:
     - name: Checkout
