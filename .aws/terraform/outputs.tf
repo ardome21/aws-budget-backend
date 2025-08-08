@@ -19,6 +19,6 @@ output "lambda_function_arn" {
 }
 
 output "bcrypt_layer_arn" {
-  description = "ARN of the bcrypt layer"
-  value       = aws_lambda_layer_version.bcrypt_layer.arn
+  description = "ARN of the jwt layer"
+  value       = aws_lambda_layer_version.jwt_layer.arn
 }
