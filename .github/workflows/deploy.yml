@@ -52,7 +52,7 @@ jobs:
     
     - name: Create terraform.tfvars
       run: |
-        cat > ../.aws/terraform/terraform.tfvars << EOF
+        cat > ../../.aws/terraform/terraform.tfvars << EOF
         aws_region = "${{ env.AWS_REGION }}"
         lambda_function_name = "login-function"
         api_name = "login-api"
