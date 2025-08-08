@@ -13,7 +13,7 @@ resource "aws_lambda_function" "login_lambda" {
   filename         = data.archive_file.login_lambda_zip.output_path
   source_code_hash = data.archive_file.login_lambda_zip.output_base64sha256
   
-  layers = [aws_lambda_layer_version.bcrypt_layer.arn]
+  layers = [aws_lambda_layer_version.jwt_layer.arn]
   
   timeout     = 30
   memory_size = 128
