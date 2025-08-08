@@ -40,7 +40,7 @@ resource "aws_apigatewayv2_api" "login_api" {
 resource "aws_apigatewayv2_integration" "login_lambda_integration" {
   api_id             = aws_apigatewayv2_api.login_api.id
   integration_type   = "AWS_PROXY"
-  integration_uri    = aws_lambda_function.login_lambda.invoke_arn
+  integration_uri    = module.login_lambda.lambda_function_arn
   integration_method = "POST"
   payload_format_version = "2.0"
   timeout_milliseconds = 30000
@@ -71,7 +71,7 @@ resource "aws_apigatewayv2_route" "login_options" {
 resource "aws_lambda_permission" "allow_api_gateway_login" {
   statement_id  = "AllowAPIGatewayInvokeLogin"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.login_lambda.function_name
+  function_name = module.login_lambda.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.login_api.execution_arn}/*/*"
 }
