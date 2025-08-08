@@ -25,7 +25,7 @@
   module "sign_up_lambda" {
   source               = "./impl/lambda"
   lambda_name          = "sign-up-account-dev"
-  source_file          = "../../lambdas/auth/SignUp/main.py"
+  source_file          = "../../lambdas/auth/Signup/main.py"
   existing_iam_role_arn = var.existing_iam_role_arn
   lambda_layers         = [aws_lambda_layer_version.jwt_layer.arn]
 }
