@@ -10,6 +10,12 @@ from plaid import Environment
 
 def lambda_handler(event, context):
     try:
+        http_method = event.get('httpMethod') or event.get('requestContext', {}).get('http', {}).get('method')
+        print(f"HTTP Method detected: {http_method}")
+        
+        if http_method == 'OPTIONS':
+            print("Handling OPTIONS preflight request")
+            return
         # secrets_client = boto3.client("secretsmanager", region_name="us-east-1")
         # secret_value = secrets_client.get_secret_value(SecretId="plaid")
         # secret = json.loads(secret_value["SecretString"])
