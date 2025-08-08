@@ -12,7 +12,7 @@ resource "aws_lambda_function" "login_lambda" {
   role          = var.existing_iam_role_arn
   handler       = var.lambda_handler
   runtime       = "python3.11"
-  filename      = var.filename
+  filename      = var.lamdba_filename
   layers        = var.lambda_layers
   timeout       = 30
   memory_size   = 128
