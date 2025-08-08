@@ -19,15 +19,15 @@ on:
 
 env:
   TF_VERSION: '1.5.0'
-  AWS_REGION: 'us-east-1'  # Change to your region
+  AWS_REGION: 'us-east-1'
 
 jobs:
   terraform:
     name: 'Terraform'
     runs-on: ubuntu-latest
     
-    # Use this to differentiate between environments if needed
-    environment: production
+    
+    environment: dev
     
     defaults:
       run:
@@ -52,9 +52,8 @@ jobs:
     
     - name: Create terraform.tfvars
       run: |
-        cat > terraform.tfvars << EOF
+        cat > ../.aws/terraform/terraform.tfvars << EOF
         aws_region = "${{ env.AWS_REGION }}"
-        existing_iam_role_arn = "${{ secrets.APP_ROLE_ARN }}"
         lambda_function_name = "login-function"
         api_name = "login-api"
         EOF
