@@ -1,80 +1,43 @@
-# .github/workflows/deploy.yml
-name: Deploy AWS Infrastructure
+# name: Terraform Deploy
 
 on:
   push:
-    branches: [ main ]
-    paths:
-      - '.aws/terraform/**'
-      - 'lambda/**'
-      - 'layers/**'
-      - '.github/workflows/deploy.yml'
-  pull_request:
-    branches: [ main ]
-    paths:
-      - 'terraform/**'
-      - 'lambda/**'
-      - 'layers/**'
-      - '.github/workflows/deploy.yml'
-
-env:
-  TF_VERSION: '1.5.0'
-  AWS_REGION: 'us-east-1'
+    branches:
+      - main
 
 jobs:
   terraform:
-    name: 'Terraform'
+    name: 'Terraform Apply'
     runs-on: ubuntu-latest
-    
-    
-    environment: dev
-    
+
     defaults:
       run:
-        shell: bash
         working-directory: .aws/terraform
-    
+
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-    
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
-    
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: ${{ env.TF_VERSION }}
-    
-    - name: Create terraform.tfvars
-      run: |
-        cat > terraform.tfvars << EOF
-        aws_region = "${{ env.AWS_REGION }}"
-        EOF
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Force Unlock Terraform State
-      run: terraform force-unlock -force b7d9b982-940f-e349-b2b5-325fbef8cd4f
-      continue-on-error: true
-    
-    - name: Terraform Init
-      id: init
-      run: terraform init
-    
-    - name: Terraform Plan
-      run: |
-        export TF_LOG=DEBUG
-        terraform plan
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.0  # or your preferred version
 
-    - name: Terraform Apply
-      run: terraform apply -auto-approve
-    
-    - name: Output API URL
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: |
-        echo "## 🚀 Deployment Complete!" >> $GITHUB_STEP_SUMMARY
-        echo "**Login API URL:** $(terraform output -raw login_api_url)" >> $GITHUB_STEP_SUMMARY
-        echo "**Full API Gateway URL:** $(terraform output -raw api_gateway_full_url)" >> $GITHUB_STEP_SUMMARY
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1  # change if needed
+
+      - name: Terraform Init
+        working-directory: .aws/terraform
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: .aws/terraform
+        run: terraform plan
+
+      - name: Terraform Apply
+        working-directory: .aws/terraform
+        run: terraform apply -auto-approve
