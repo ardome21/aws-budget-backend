@@ -51,11 +51,10 @@ jobs:
         terraform_version: ${{ env.TF_VERSION }}
     
     - name: Create terraform.tfvars
+      working-directory: .aws/terraform
       run: |
-        cat > ../../.aws/terraform/terraform.tfvars << EOF
+        cat > terraform.tfvars << EOF
         aws_region = "${{ env.AWS_REGION }}"
-        lambda_function_name = "login-function"
-        api_name = "login-api"
         EOF
     
     - name: Terraform Format Check
