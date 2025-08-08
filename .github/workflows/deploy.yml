@@ -63,6 +63,7 @@ jobs:
     #   continue-on-error: true
     
     - name: Terraform Init
+      working-directory: .aws/terraform
       id: init
       run: terraform init
     
@@ -71,10 +72,8 @@ jobs:
     #   run: terraform validate -no-color
     
     - name: Terraform Plan
-      id: plan
-      if: github.event_name == 'pull_request'
-      run: terraform plan -no-color -input=false
-      continue-on-error: true
+      working-directory: .aws/terraform
+      run: terraform plan
     
     # - name: Update Pull Request
     #   uses: actions/github-script@v7
@@ -111,8 +110,8 @@ jobs:
     #   run: exit 1
     
     - name: Terraform Apply
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: terraform apply -auto-approve -input=false
+      working-directory: .aws/terraform
+      run: terraform apply -auto-approve
     
     - name: Output API URL
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
