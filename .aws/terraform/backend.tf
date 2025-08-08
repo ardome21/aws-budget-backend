@@ -4,6 +4,6 @@ terraform {
     key            = "lambda-api/terraform.tfstate"
     region         = "us-east-1"
     encrypt        = true
-    dynamodb_table = "budget-terraform-state-lock"
+    dynamodb_table = "budget-state-lock"
   }
 }
