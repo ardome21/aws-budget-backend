@@ -54,7 +54,7 @@ jobs:
       run: |
         cat > terraform.tfvars << EOF
         aws_region = "${{ env.AWS_REGION }}"
-        EO
+        EOF
     
     - name: Terraform Init
       id: init
@@ -64,7 +64,7 @@ jobs:
       run: |
         export TF_LOG=DEBUG
         terraform plan
-        
+
     - name: Terraform Apply
       run: terraform apply -auto-approve
     
