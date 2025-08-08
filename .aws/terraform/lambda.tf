@@ -22,7 +22,7 @@
   lambda_layers         = [aws_lambda_layer_version.jwt_layer.arn]
 }
 
-  module "sign-up_lambda" {
+  module "sign_up_lambda" {
   source               = "./impl/lambda"
   lambda_name          = "sign-up-account-dev"
   source_file          = "../../lambdas/auth/SignUp/main.py"
