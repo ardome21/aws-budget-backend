@@ -45,18 +45,17 @@ module "auth_api" {
       lambda_name       = module.verify_account_lambda.function_name
       lambda_invoke_arn = module.verify_account_lambda.invoke_arn
     },
-
     {
       method            = "POST"
       path              = "/sign-up"
-      lambda_name       = module.sign_up_lambda.function_name
-      lambda_invoke_arn = module.sign_up_lambda.invoke_arn
+      lambda_name       = module.create_account_lambda.function_name
+      lambda_invoke_arn = module.create_account_lambda.invoke_arn
     },
     {
       method            = "OPTIONS"
       path              = "/sign-up"
-      lambda_name       = module.sign_up_lambda.function_name
-      lambda_invoke_arn = module.sign_up_lambda.invoke_arn
+      lambda_name       = module.create_account_lambda.function_name
+      lambda_invoke_arn = module.create_account_lambda.invoke_arn
     }
   ]
 }
