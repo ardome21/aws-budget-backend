@@ -56,14 +56,14 @@ module "plaid_api" {
     {
       method            = "POST"
       path              = "/get-plaid-link"
-      lambda_name       = module.plaid_get_link_lambda.function_name
-      lambda_invoke_arn = module.plaid_get_link_lambda.invoke_arn
+      lambda_name       = module.plaid_create_link_lambda.function_name
+      lambda_invoke_arn = module.plaid_create_link_lambda.invoke_arn
     },
     {
       method            = "OPTIONS"
       path              = "/get-plaid-link"
-      lambda_name       = module.plaid_get_link_lambda.function_name
-      lambda_invoke_arn = module.plaid_get_link_lambda.invoke_arn
+      lambda_name       = module.plaid_create_link_lambda.function_name
+      lambda_invoke_arn = module.plaid_create_link_lambda.invoke_arn
     },
     {
       method            = "POST"
