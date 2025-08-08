@@ -15,5 +15,5 @@ output "login_lambda_function_arn" {
 
 output "api_gateway_url" {
   description = "API Gateway URL"
-  value       = aws_apigatewayv2_api.auth_api.api_endpoint
+  value       = module.auth_api.api_endpoint
 }
