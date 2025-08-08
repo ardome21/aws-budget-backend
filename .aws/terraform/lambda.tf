@@ -5,7 +5,7 @@ data "archive_file" "login_lambda_zip" {
 }
 
 resource "aws_lambda_function" "login_lambda" {
-  function_name = var.lambda_function_name
+  function_name = "budget-login-deployed"
   role         = var.existing_iam_role_arn
   handler      = "login.handler"  # Assuming your function is named 'handler' in login.py
   runtime      = "python3.11"
