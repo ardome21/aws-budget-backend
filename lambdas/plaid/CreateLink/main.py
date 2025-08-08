@@ -30,6 +30,8 @@ def lambda_handler(event, context):
         
         api_client = ApiClient(configuration)
         client = plaid_api.PlaidApi(api_client)
+
+        print(f'Event: {event}')  # Add logging for the event
         
         if isinstance(event['body'], str):
             body = json.loads(event['body'])
