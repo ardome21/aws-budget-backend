@@ -1,0 +1,79 @@
+# .github/workflows/unlock-state.yml
+name: Unlock Terraform State (One-Time)
+
+on:
+  workflow_dispatch:
+    inputs:
+      lock_id:
+        description: 'Lock ID to force unlock'
+        required: true
+        default: 'b7d9b982-940f-e349-b2b5-325fbef8cd4f'
+        type: string
+      confirm:
+        description: 'Type YES to confirm unlock'
+        required: true
+        type: string
+
+env:
+  AWS_REGION: 'us-east-1'
+
+jobs:
+  unlock:
+    name: 'Force Unlock State'
+    runs-on: ubuntu-latest
+    environment: dev
+    
+    defaults:
+      run:
+        shell: bash
+        working-directory: .aws/terraform
+    
+    steps:
+    - name: Validate Confirmation
+      run: |
+        if [ "${{ inputs.confirm }}" != "YES" ]; then
+          echo "❌ Confirmation not provided. You must type 'YES' to proceed."
+          exit 1
+        fi
+        echo "✅ Confirmation received"
+    
+    - name: Checkout
+      uses: actions/checkout@v4
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+    
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: '1.5.0'
+    
+    - name: Terraform Init
+      run: terraform init
+    
+    - name: Check Current Lock Status
+      run: |
+        echo "🔒 Checking current lock status..."
+        terraform plan -detailed-exitcode > /dev/null 2>&1 || echo "Lock detected as expected"
+    
+    - name: Force Unlock Terraform State
+      run: |
+        echo "🔓 Force unlocking state with ID: ${{ inputs.lock_id }}"
+        terraform force-unlock -force "${{ inputs.lock_id }}"
+        echo "✅ State unlocked successfully"
+    
+    - name: Verify Unlock
+      run: |
+        echo "🧪 Verifying unlock by running a quick plan..."
+        terraform plan -refresh=false > /dev/null 2>&1
+        echo "✅ State is now accessible"
+    
+    - name: Summary
+      run: |
+        echo "## 🔓 State Lock Removal Complete!" >> $GITHUB_STEP_SUMMARY
+        echo "Lock ID \`${{ inputs.lock_id }}\` has been force-removed." >> $GITHUB_STEP_SUMMARY
+        echo "You can now run your normal deployment workflow." >> $GITHUB_STEP_SUMMARY
