@@ -5,7 +5,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'terraform/**'
+      - '.aws/terraform/**'
       - 'lambda/**'
       - 'layers/**'
       - '.github/workflows/deploy.yml'
