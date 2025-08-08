@@ -1,4 +1,4 @@
-# name: Deploy Codebase to AWS using Terraform
+name: Deploy Codebase to AWS using Terraform
 on:
   push:
     branches:
