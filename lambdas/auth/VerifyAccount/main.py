@@ -27,7 +27,7 @@ def lambda_handler(event, _context):
                 'body': "Invalid confirmation link"
             }
         dynamodb = boto3.resource('dynamodb')
-        table = dynamodb.Table('uses-dev')
+        table = dynamodb.Table('users-dev')
         response = table.get_item(
             Key={
                 'email': email

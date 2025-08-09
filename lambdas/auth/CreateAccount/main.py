@@ -59,7 +59,7 @@ def send_email(user_email: str, user_first_name: str, user_last_name: str, verif
     ses = boto3.client('ses', region_name='us-east-1')
     sender_email = 'ardome21+aws@gmail.com'
     subject = 'Confirm Email for Budget App'
-    confirmation_link = f"https://kdg0ldohqb.execute-api.us-east-1.amazonaws.com/default/budget-verify-account?email={user_email}&token={verification_token}"
+    confirmation_link = f"https://rci0hqwbeh.execute-api.us-east-1.amazonaws.com/verify-account?email={user_email}&token={verification_token}"
 
     body = f"""
     <html>
