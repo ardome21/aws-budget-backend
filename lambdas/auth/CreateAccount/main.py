@@ -4,7 +4,7 @@ import os
 import base64
 import re
 import boto3
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 # Initialize DynamoDB client
@@ -20,7 +20,7 @@ def hash_password(password: str) -> str:
 
 def create_user_record(email: str, firstName: str, lastName: str, hashed_password: str, verification_token: str):
     """Create user record in database"""
-    timestamp = datetime.utcnow().isoformat()
+    timestamp = datetime.now(timezone.utc) .isoformat()
     
     user_item = {
         'email': email,
@@ -137,43 +137,39 @@ def lambda_handler(event, context):
         
         print(f"Email: {email}, First Name: {firstName}, Last Name: {lastName}")
         
-        # # Validate email format
-        # if not validate_email(email):
-        #     print(f"Invalid email format: {email}")
-        #     return {
-        #         'statusCode': 400,
-        #         'headers': headers,
-        #         'body': json.dumps({
-        #             'error': 'Invalid email format',
-        #             'success': False
-        #         })
-        #     }
+        if not validate_email(email):
+            print(f"Invalid email format: {email}")
+            return {
+                'statusCode': 400,
+                'headers': headers,
+                'body': json.dumps({
+                    'error': 'Invalid email format',
+                    'success': False
+                })
+            }
         
-        # # Check password strength (minimum 8 characters)
-        # if len(password) < 6:
-        #     print(f"Password too short: {password}")
-        #     return {
-        #         'statusCode': 400,
-        #         'headers': headers,
-        #         'body': json.dumps({
-        #             'error': 'Password must be at least 8 characters long',
-        #             'success': False
-        #         })
-        #     }
+        if len(password) < 6:
+            print(f"Password too short: {password}")
+            return {
+                'statusCode': 400,
+                'headers': headers,
+                'body': json.dumps({
+                    'error': 'Password must be at least 8 characters long',
+                    'success': False
+                })
+            }
         
-        # # Check if user already exists
-        # if check_user_exists(email):
-        #     print(f"User already exists: {email}")
-        #     return {
-        #         'statusCode': 409,
-        #         'headers': headers,
-        #         'body': json.dumps({
-        #             'error': 'User with this email already exists',
-        #             'success': False
-        #         })
-        #     }
+        if check_user_exists(email):
+            print(f"User already exists: {email}")
+            return {
+                'statusCode': 409,
+                'headers': headers,
+                'body': json.dumps({
+                    'error': 'User with this email already exists',
+                    'success': False
+                })
+            }
         
-        # Hash password and create user
         hashed_password = hash_password(password)
         verification_token = str(uuid.uuid4())
         

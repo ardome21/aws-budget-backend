@@ -2,7 +2,7 @@ import hashlib
 import base64
 import os
 import json
-import datetime
+from datetime import datetime, timedelta, timezone
 import boto3
 from botocore.exceptions import ClientError
 import jwt
@@ -92,12 +92,14 @@ def login(event):
                     'error': 'Invalid credentials'
                 })
             }
+        
+
         # Verify the password
         if check_password(password, stored_hash):
             print("Password verified")
             payload = {
                 'email': email,
-                'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=48)
+                'exp': datetime.now(timezone.utc) + timedelta(hours=48)
             }
 
             jwt_secret = boto3.client('ssm').get_parameter(Name='/budget/jwt-secret-key', WithDecryption=True)['Parameter']['Value']
