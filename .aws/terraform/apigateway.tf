@@ -34,17 +34,11 @@ module "auth_api" {
       lambda_invoke_arn = module.logout_lambda.invoke_arn
     },
     {
-      method            = "POST"
+      method            = "GET"
       path              = "/verify-account"
       lambda_name       = module.verify_account_lambda.function_name
       lambda_invoke_arn = module.verify_account_lambda.invoke_arn
-    },
-    {
-      method            = "OPTIONS"
-      path              = "/verify-account"
-      lambda_name       = module.verify_account_lambda.function_name
-      lambda_invoke_arn = module.verify_account_lambda.invoke_arn
-    },
+    }
     {
       method            = "POST"
       path              = "/sign-up"

@@ -1,258 +1,223 @@
-import hashlib
-import base64
-import os
 import json
-import datetime
+import hashlib
+import os
+import base64
+import re
 import boto3
-from botocore.exceptions import ClientError
-import jwt
+from datetime import datetime
+import uuid
 
-CORS_HEADERS = {
-    'Access-Control-Allow-Origin': 'http://localhost:4200',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Credentials': 'true'
-}
-
+# Initialize DynamoDB client
 dynamodb = boto3.resource('dynamodb')
-userTable = dynamodb.Table('users-dev')
+users_table = dynamodb.Table('users-dev')
 
+def hash_password(password: str) -> str:
+    """Hash a password using PBKDF2 with SHA256"""
+    salt = os.urandom(32)
+    pwdhash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
+    combined = salt + pwdhash
+    return base64.b64encode(combined).decode('utf-8')
 
-def check_password(password: str, stored_hash: str) -> bool:
-    """Check if the provided password matches the stored hash"""
+def create_user_record(email: str, firstName: str, lastName: str, hashed_password: str, verification_token: str):
+    """Create user record in database"""
+    timestamp = datetime.utcnow().isoformat()
+    
+    user_item = {
+        'email': email,
+        'first_name': firstName,
+        'last_name': lastName,
+        'password_hash': hashed_password,
+        'created_at': timestamp,
+        'updated_at': timestamp,
+        'is_active': True,
+        'email_verified': False,
+        'verification_token': verification_token
+    }
+    
     try:
-        decoded_hash_data = base64.b64decode(stored_hash.encode('utf-8'))
-        salt = decoded_hash_data[:32]
-        stored_pwdhash = decoded_hash_data[32:]
-        computed_password_hash = hashlib.pbkdf2_hmac(
-            'sha256', password.encode('utf-8'), salt, 100000)
-        return computed_password_hash == stored_pwdhash
+        users_table.put_item(Item=user_item)
     except Exception as e:
-        print(f"Password verification error: {e}")
+        print(f"Error creating user: {str(e)}")
+        raise
+
+def validate_email(email: str) -> bool:
+    """Validate email format"""
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return re.match(email_pattern, email) is not None
+
+def check_user_exists(email: str) -> bool:
+    """Check if user already exists"""
+    try:
+        response = users_table.get_item(Key={'email': email})
+        return 'Item' in response
+    except Exception as e:
+        print(f"Error checking user existence: {str(e)}")
         return False
 
+def send_email(user_email: str, user_first_name: str, user_last_name: str, verification_token: str):
+    """Send end email using SES"""
+    ses = boto3.client('ses', region_name='us-east-1')
+    sender_email = 'ardome21+aws@gmail.com'
+    subject = 'Confirm Email for Budget App'
+    confirmation_link = f"https://kdg0ldohqb.execute-api.us-east-1.amazonaws.com/default/budget-verify-account?email={user_email}&token={verification_token}"
 
-def verify_auth():
-    """ Verify if user is logged in already and logs them in"""
+    body = f"""
+    <html>
+    <body>
+        <h1>Welcome to Budget App, {user_first_name} {user_last_name}!</h1>
+        <p>Thank you for joining Budget App. We're excited to have you on board.</p>
+        <p>Please click the link to confirm this email and user</p>
+        <a href="{confirmation_link}">
+        <p>Best regards,<br>Budget App Team</p>
+    </body>
+    </html>
+    """
+
     try:
-        pass
-    except Exception as e:
-        print(f"Error verifying auth: {e}")
-        return False
-
-
-def login(event):
-    """Login user"""
-    try:
-        if not event.get('body'):
-            print("ERROR: No body in request")
-            return {
-                'statusCode': 400,
-                'headers': {
-                    **CORS_HEADERS,
-                    'Content-Type': 'application/json'
-                },
-                'body': json.dumps({'error': 'Request body is required'})
+        ses.send_email(
+            Source=sender_email,
+            Destination={'ToAddresses': [user_email]},
+            Message={
+                'Subject': {'Data': subject},
+                'Body': {'Html': {'Data': body}}
             }
-        body = json.loads(event['body']) if isinstance(
-            event.get('body'), str) else event.get('body', {})
-
-        email = body.get('email')
-        password = body.get('password')
-        print(f"Email: {email}")
-
-        if not email or not password:
-            return {
-                'statusCode': 400,
-                'headers': CORS_HEADERS,
-                'body': json.dumps({
-                    'error': 'Email and password are required'
-                })
-            }
-        response = userTable.get_item(
-            Key={'email': email}
         )
-        stored_hash = None
-        is_email_verified = False
-        if 'Item' in response:
-            user = response['Item']
-            is_email_verified = user['email_verified']
-            stored_hash = user['password_hash']
-        else:
-            # User does not exist
-            print(f"User does not exist: {email}")
-            return {
-                'statusCode': 401,
-                'headers': CORS_HEADERS,
-                'body': json.dumps({
-                    'error': 'User does not exist'
-                })
-            }
-        if not is_email_verified:
-            return {
-                'statusCode': 401,
-                'headers': CORS_HEADERS,
-                'body': json.dumps({
-                    'error': 'Email not verified'
-                })
-            }
-        if not stored_hash:
-            # User exists but no password hash
-            return {
-                'statusCode': 401,
-                'headers': CORS_HEADERS,
-                'body': json.dumps({
-                    'error': 'Invalid credentials'
-                })
-            }
-        # Verify the password
-        if check_password(password, stored_hash):
-            print("Password verified")
-            payload = {
-                'email': email,
-                'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=48)
-            }
+        print(f"End email sent to {user_email}")
+    except Exception as e:
+        print(f"Error sending end email: {str(e)}")
+        raise
 
-            jwt_secret = boto3.client('ssm').get_parameter(Name='/budget/jwt-secret-key', WithDecryption=True)['Parameter']['Value']
-            token = jwt.encode(payload, jwt_secret, algorithm='HS256')
-
-            userProfile = {
-                    'email': email,
-                    'first_name': user['first_name'],
-                    'last_name': user['last_name']
-                }
-            print(f"User profile: {userProfile}")
-            is_development = True
-            if is_development:
-                cookie_attributes = f'authToken={token}; HttpOnly; Secure; SameSite=None; Max-Age=10; Path=/'
-            else:
-                cookie_attributes = f'authToken={token}; HttpOnly; Secure; SameSite=Strict; Max-Age=172800; Path=/'
+def lambda_handler(event, context):
+    """Main Lambda handler for creating users"""
+    
+    headers = {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS'
+    }
+    
+    try:
+        http_method = event.get('httpMethod') or event.get('requestContext', {}).get('http', {}).get('method')
+        print(f"HTTP Method detected: {http_method}")
+        
+        if http_method == 'OPTIONS':
+            print("Handling OPTIONS preflight request")
             return {
                 'statusCode': 200,
-                'headers': {
-                    **CORS_HEADERS,
-                    'Content-Type': 'application/json',
-                    'Set-Cookie': cookie_attributes
-                },
-                'body': json.dumps({
-                    'message': 'Login successful',
-                    'user': userProfile,
-                        'expires_in': '86400 Second (24 hrs)'
-                    })
-                }
+                'headers': headers,
+                'body': ''
+            }
+        print("Handling POST request")
+        # Parse request body
+        if isinstance(event['body'], str):
+            body = json.loads(event['body'])
         else:
-            print("Password verification failed")
+            body = event['body']
+        
+        # Validate required fields
+        required_fields = ['email', 'password', 'first_name', 'last_name']
+        missing_fields = [field for field in required_fields if field not in body or not body[field]]
+        
+        if missing_fields:
+            print(f"Missing required fields: {', '.join(missing_fields)}")
             return {
-                'statusCode': 401,
-                'headers': CORS_HEADERS,
+                'statusCode': 400,
+                'headers': headers,
                 'body': json.dumps({
-                    'error': 'Invalid credentials'
+                    'error': f'Missing required fields: {", ".join(missing_fields)}',
+                    'success': False
                 })
             }
-    except Exception as e:
-        print(f"Error logging in user: {e}")
+        
+        email = body['email'].lower().strip()
+        password = body['password']
+        firstName = body['first_name'].strip()
+        lastName = body['last_name'].strip()
+        
+        print(f"Email: {email}, First Name: {firstName}, Last Name: {lastName}")
+        
+        # # Validate email format
+        # if not validate_email(email):
+        #     print(f"Invalid email format: {email}")
+        #     return {
+        #         'statusCode': 400,
+        #         'headers': headers,
+        #         'body': json.dumps({
+        #             'error': 'Invalid email format',
+        #             'success': False
+        #         })
+        #     }
+        
+        # # Check password strength (minimum 8 characters)
+        # if len(password) < 6:
+        #     print(f"Password too short: {password}")
+        #     return {
+        #         'statusCode': 400,
+        #         'headers': headers,
+        #         'body': json.dumps({
+        #             'error': 'Password must be at least 8 characters long',
+        #             'success': False
+        #         })
+        #     }
+        
+        # # Check if user already exists
+        # if check_user_exists(email):
+        #     print(f"User already exists: {email}")
+        #     return {
+        #         'statusCode': 409,
+        #         'headers': headers,
+        #         'body': json.dumps({
+        #             'error': 'User with this email already exists',
+        #             'success': False
+        #         })
+        #     }
+        
+        # Hash password and create user
+        hashed_password = hash_password(password)
+        verification_token = str(uuid.uuid4())
+        
+        create_user_record(
+            email=email,
+            firstName=firstName,
+            lastName=lastName,
+            hashed_password=hashed_password,
+            verification_token=verification_token
+        )
+        print(f"User created successfully: {email}")
+        send_email(email, firstName, lastName, verification_token)
+        
         return {
-            'statusCode': 500,
-            'headers': CORS_HEADERS,
+            'statusCode': 201,
+            'headers': headers,
             'body': json.dumps({
-                'error': 'Internal server error'
+                'message': 'User created successfully',
+                'user': {
+                    'email': email,
+                    'firstName': firstName,
+                    'lastName': lastName
+                },
+                'success': True
             })
         }
     
-def get_auth_token(event):
-    cookies = event.get('cookies', [])
-    for cookie in cookies:
-        if cookie.startswith('authToken='):
-            return cookie.split('=', 1)[1]
-    return None
-
-def not_authenticated_response(message='Not authenticated'):
-    return {
-        'statusCode': 200,
-        'headers': {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Credentials': 'true',
-            'Set-Cookie': 'authToken=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Strict'
-        },
-        'body': json.dumps({
-            'success': 'false',
-            'message': message
-        }),
-    }
-
-def verify_auth(event):
-    token = get_auth_token(event)
-    if not token:
-        return not_authenticated_response()
-    try:
-        jwt_secret = boto3.client('ssm').get_parameter(Name='/budget/jwt-secret-key', WithDecryption=True)['Parameter']['Value']
-        payload = jwt.decode(token, jwt_secret, algorithms=['HS256'])
-    except jwt.ExpiredSignatureError:
-        return not_authenticated_response('Token expired')
-    except jwt.InvalidTokenError:
-        return not_authenticated_response('Invalid token')
-    response = userTable.get_item(Key={'email': payload.get("email")})
-
-    if 'Item' not in response:
-        return not_authenticated_response('User not found')
-
-    user_data = {
-        "email": response['Item'].get("email"),
-        "first_name": response['Item'].get("first_name"),
-        "last_name": response['Item'].get("last_name")
-    }
-
-    is_development = True
-    if is_development:
-        cookie_attributes = f'authToken={token}; HttpOnly; Secure; SameSite=None; Max-Age=10; Path=/'
-    else:
-        cookie_attributes = f'authToken={token}; HttpOnly; Secure; SameSite=Strict; Max-Age=172800; Path=/'
-
-
-    return {
-        'statusCode': 200,
-        'headers': {
-            **CORS_HEADERS,
-            'Content-Type': 'application/json',
-            'Set-Cookie': cookie_attributes
-        },
-        'body': json.dumps({
-            'success': 'true',
-            'userData': user_data,
-            'message': 'Authenticated'
-        })
-    }
-
-
-def lambda_handler(event, _context):
-    """AWS Lambda handler for user login"""
-    try:
-        http_method = event.get('httpMethod') or event.get(
-            'requestContext', {}).get('http', {}).get('method')
-        if http_method == 'OPTIONS':
-            print("Handling OPTIONS preflight request")
-            return
-
-        elif http_method == 'GET':
-            print("Handling GET request")
-            return verify_auth(event)
-        elif http_method == 'POST':
-            print("Handling POST request")
-            return login(event)
-        else:
-            print(f"Unsupported HTTP method: {http_method}")
-            return {
-                'statusCode': 405,
-                'headers': CORS_HEADERS,
-                'body': json.dumps({'error': 'Method not allowed'})
-            }
+    except json.JSONDecodeError:
+        return {
+            'statusCode': 400,
+            'headers': headers,
+            'body': json.dumps({
+                'error': 'Invalid JSON format',
+                'success': False
+            })
+        }
+    
     except Exception as e:
-        print(f"Lambda error: {e}")
+        print(f"Unexpected error: {str(e)}")
         return {
             'statusCode': 500,
-            'headers': CORS_HEADERS,
+            'headers': headers,
             'body': json.dumps({
-                'error': 'Internal server error'
+                'error': 'Internal server error',
+                'success': False
             })
         }
