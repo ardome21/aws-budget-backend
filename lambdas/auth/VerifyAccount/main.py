@@ -5,6 +5,7 @@ should take user to confirmation page where they can login.
 """
 import boto3
 import json
+from boto3.dynamodb.conditions import Key
 
 def lambda_handler(event, _context):
     try:
@@ -28,11 +29,9 @@ def lambda_handler(event, _context):
             }
         dynamodb = boto3.resource('dynamodb')
         table = dynamodb.Table('users-dev')
-        response = table.get_item(
-            Key={
-                'email': email
-            }
-        )
+        response = table.query(
+            KeyConditionExpression=Key('email').eq(email)
+            )
         user = response['Item']
         if response['Item']['email_verified'] == True:
             return {

@@ -1,10 +1,9 @@
 import hashlib
 import base64
-import os
 import json
 from datetime import datetime, timedelta, timezone
 import boto3
-from botocore.exceptions import ClientError
+from boto3.dynamodb.conditions import Key
 import jwt
 
 CORS_HEADERS = {

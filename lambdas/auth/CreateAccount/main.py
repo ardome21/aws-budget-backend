@@ -5,6 +5,7 @@ import base64
 import re
 import boto3
 from datetime import datetime, timezone
+from boto3.dynamodb.conditions import Key
 import uuid
 
 # Initialize DynamoDB client
@@ -64,7 +65,9 @@ def validate_email(email: str) -> bool:
 def check_user_exists(email: str) -> bool:
     """Check if user already exists"""
     try:
-        response = users_table.get_item(Key={'email': email})
+        response = users_table.query(
+            KeyConditionExpression=Key('email').eq(email)
+            )
         return 'Item' in response
     except Exception as e:
         print(f"Error checking user existence: {str(e)}")
