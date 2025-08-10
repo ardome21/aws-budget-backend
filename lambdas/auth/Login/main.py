@@ -56,9 +56,9 @@ def login(event):
                     'error': 'Email and password are required'
                 })
             }
-        response = userTable.get_item(
-            Key={'email': email}
-        )
+        response = userTable.query(
+            KeyConditionExpression=Key('email').eq(email)
+            )
         stored_hash = None
         is_email_verified = False
         if 'Item' in response:
@@ -183,7 +183,9 @@ def verify_auth(event):
         return not_authenticated_response('Token expired')
     except jwt.InvalidTokenError:
         return not_authenticated_response('Invalid token')
-    response = userTable.get_item(Key={'email': payload.get("email")})
+    response = userTable.query(
+            KeyConditionExpression=Key('email').eq(payload.get("email"))
+            )
 
     if 'Item' not in response:
         return not_authenticated_response('User not found')
