@@ -32,8 +32,23 @@ def lambda_handler(event, _context):
         response = table.query(
             KeyConditionExpression=Key('email').eq(email)
             )
-        user = response['Item']
-        if response['Item']['email_verified'] == True:
+        print(f"Response: {response}")
+        user = response['Items']
+        if not user:
+            print("User not found")
+            return {
+                'statusCode': 400,
+                'headers': {'Content-Type': 'text/html'},
+                'body': "Invalid confirmation link"
+            }
+        if len(user) > 1:
+            print("Multiple users found")
+            return {
+                'statusCode': 400,
+                'headers': {'Content-Type': 'text/html'},
+                'body': "Invalid confirmation link"
+            }
+        if user[0]['email_verified'] == True:
             return {
                 'statusCode': 200,
                 'headers': {
@@ -41,7 +56,7 @@ def lambda_handler(event, _context):
                 },
                 'body': json.dumps('Email already confirmed')
             }
-        if user['verification_token'] != token:
+        if user[0]['verification_token'] != token:
             print("Invalid token")
             return {
                 'statusCode': 400,
@@ -50,7 +65,8 @@ def lambda_handler(event, _context):
             }
         table.update_item(
             Key={
-                'email': email
+                'email': email,
+                'user_id': user[0]['user_id']
             },
             UpdateExpression='SET email_verified = :val1, verification_token = :val2',
             ExpressionAttributeValues={

@@ -34,10 +34,10 @@ def generate_user_id():
     
     return f"UID{max_id + 1:03d}"
 
-def create_user_record(email: str, firstName: str, lastName: str, hashed_password: str, verification_token: str):
+def create_user_record(email: str, firstName: str, lastName: str, hashed_password: str, verification_token: str, user_id: str):
     """Create user record in database"""
     timestamp = datetime.now(timezone.utc) .isoformat()
-    user_id = generate_user_id()
+    
     user_item = {
         'user_id': user_id,
         'email': email,
@@ -191,13 +191,15 @@ def lambda_handler(event, context):
         
         hashed_password = hash_password(password)
         verification_token = str(uuid.uuid4())
+        user_id = generate_user_id()
         
         create_user_record(
             email=email,
             firstName=firstName,
             lastName=lastName,
             hashed_password=hashed_password,
-            verification_token=verification_token
+            verification_token=verification_token,
+            user_id=user_id
         )
         print(f"User created successfully: {email}")
         send_email(email, firstName, lastName, verification_token)
@@ -209,6 +211,7 @@ def lambda_handler(event, context):
                 'message': 'User created successfully',
                 'user': {
                     'email': email,
+                    'user_id': user_id,
                     'firstName': firstName,
                     'lastName': lastName
                 },

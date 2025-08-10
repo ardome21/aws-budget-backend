@@ -58,15 +58,7 @@ def login(event):
         response = userTable.query(
             KeyConditionExpression=Key('email').eq(email)
             )
-        stored_hash = None
-        is_email_verified = False
-        if 'Item' in response:
-            user = response['Item']
-            is_email_verified = user['email_verified']
-            stored_hash = user['password_hash']
-        else:
-            # User does not exist
-            print(f"User does not exist: {email}")
+        if 'Items' not in response:
             return {
                 'statusCode': 401,
                 'headers': CORS_HEADERS,
@@ -74,6 +66,17 @@ def login(event):
                     'error': 'User does not exist'
                 })
             }
+        if len(response['Items']) > 1:
+            return {
+                'statusCode': 500,
+                'headers': CORS_HEADERS,
+                'body': json.dumps({
+                    'error': 'Multiple users found'
+                })
+            }
+        user = response['Items'][0]
+        is_email_verified = user['email_verified']
+        stored_hash = user['password_hash']
         if not is_email_verified:
             return {
                 'statusCode': 401,
@@ -186,13 +189,17 @@ def verify_auth(event):
             KeyConditionExpression=Key('email').eq(payload.get("email"))
             )
 
-    if 'Item' not in response:
+    if 'Items' not in response:
         return not_authenticated_response('User not found')
 
+    if len(response['Items']) > 1:
+        return not_authenticated_response('Multiple users found')
+    user = response['Items'][0]
+
     user_data = {
-        "email": response['Item'].get("email"),
-        "first_name": response['Item'].get("first_name"),
-        "last_name": response['Item'].get("last_name")
+        "email": user.get("email"),
+        "first_name": user.get("first_name"),
+        "last_name": user.get("last_name")
     }
 
     is_development = True
