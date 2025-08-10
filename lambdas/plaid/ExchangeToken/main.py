@@ -4,9 +4,12 @@ from datetime import datetime
 from plaid.api import plaid_api
 from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
 from plaid.model.institutions_get_by_id_request import InstitutionsGetByIdRequest
+from plaid.model.country_code import CountryCode
 from plaid.configuration import Configuration
 from plaid.api_client import ApiClient
 from plaid import Environment
+from datetime import timezone, timedelta
+import jwt
  
 CORS_HEADERS = {
         'Access-Control-Allow-Origin': '*',
@@ -33,8 +36,6 @@ def get_institution_name(client, access_token):
         request = ItemGetRequest(access_token=access_token)
         response = client.item_get(request)
         institution_id = response['item']['institution_id']
-        
-        # Get institution details
         inst_request = InstitutionsGetByIdRequest(
             institution_id=institution_id,
             country_codes=[CountryCode('US')]
@@ -44,23 +45,33 @@ def get_institution_name(client, access_token):
     except Exception as e:
         print(f"Could not fetch institution name: {e}")
         return None
+
+def encode_access_token(access_token, jwt_secret):
+    """Encode the access token using JWT"""
+    try:
+        payload = {
+            'access_token': access_token,
+            'exp': datetime.now(timezone.utc) + timedelta(days=365)
+        }
+        encoded_token = jwt.encode(payload, jwt_secret, algorithm='HS256')
+        return encoded_token
+    except Exception as e:
+        print(f"JWT encoding error: {e}")
+        return access_token
     
-def store_plaid_connection(user_id, access_token, item_id, institution_name=None):
+def store_plaid_connection(user_id, access_token, item_id, institution_name):
     """Store the Plaid connection details in DynamoDB"""
     dynamodb = boto3.resource('dynamodb')
-    table = dynamodb.Table('plaid_connections')
+    table = dynamodb.Table('plaid-connections-dev')
     
     item = {
         'user_id': user_id,
-        'access_token': access_token,
         'item_id': item_id,
-        'created_at': datetime.utcnow().isoformat(),
+        'institution_name': institution_name,
+        'access_token': access_token,
+        'created_at': datetime.now(timezone.utc).isoformat(),
         'status': 'active'
     }
-    
-    if institution_name:
-        item['institution_name'] = institution_name
-    
     table.put_item(Item=item)
     return item
 
@@ -86,6 +97,7 @@ def lambda_handler(event, context):
         ssm_client = boto3.client('ssm')
         client_id = ssm_client.get_parameter(Name='/budget/plaid/client_id', WithDecryption=True)['Parameter']['Value']
         sandbox_secret = ssm_client.get_parameter(Name='/budget/plaid/sandbox_secret', WithDecryption=True)['Parameter']['Value']
+        jwt_secret = ssm_client.get_parameter(Name='/budget/jwt-secret-key', WithDecryption=True)['Parameter']['Value']
 
         configuration = Configuration(
             host=Environment.Sandbox,
@@ -111,22 +123,18 @@ def lambda_handler(event, context):
         if not public_token:
             raise Exception("No public token provided")
         print(f"Public token received for {user_id}")
-        
         tokens = exchange_public_token(client, public_token) 
         if not (tokens and tokens['access_token'] and tokens['item_id']):
             raise Exception("No tokens received")
         institution_name = get_institution_name(client, tokens['access_token'])
-
+        encrypted_access_token = encode_access_token(tokens['access_token'], jwt_secret)
         stored_connection = store_plaid_connection(
             user_id=user_id,
-            access_token=tokens['access_token'],
+            access_token=encrypted_access_token,
             item_id=tokens['item_id'],
             institution_name=institution_name
         )
-        
         print(f"Stored Plaid connection for user {user_id}")
-        
-        # Return success (don't send access_token back to frontend for security)
         return {
             'statusCode': 200,
             'headers': CORS_HEADERS,
