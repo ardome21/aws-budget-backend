@@ -1,7 +1,7 @@
 module "user_table" {
   source        = "./impl/dynamodb"
   table_name    = "users-dev"
-  partition_key = "user_id"
-  sort_key      = "email"
+  partition_key = "email"
+  sort_key      = "user_id"
   environment   = "dev"
 }

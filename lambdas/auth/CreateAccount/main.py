@@ -19,21 +19,19 @@ def hash_password(password: str) -> str:
     return base64.b64encode(combined).decode('utf-8')
 
 def generate_user_id():
-    """Generate unique id for user in format UID###"""
-    response = users_table.query(
-        KeyConditionExpression=Key('partition_key').eq('USER'),
-        ScanIndexForward=False,
-        Limit=1
-    )
+    response = users_table.scan(ProjectionExpression='user_id')
     
-    if response['Items']:
-        last_user_id = response['Items'][0]['user_id']
-        last_num = int(last_user_id[3:])
-        next_num = last_num + 1
-    else:
-        next_num = 1
+    max_id = 0
+    for item in response['Items']:
+        user_id = item['user_id']
+        if user_id.startswith('UID'):
+            try:
+                num = int(user_id[3:])
+                max_id = max(max_id, num)
+            except ValueError:
+                continue
     
-    return f"UID{next_num:03d}"
+    return f"UID{max_id + 1:03d}"
 
 def create_user_record(email: str, firstName: str, lastName: str, hashed_password: str, verification_token: str):
     """Create user record in database"""
