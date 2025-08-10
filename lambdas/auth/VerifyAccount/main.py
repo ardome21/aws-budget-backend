@@ -19,9 +19,8 @@ def lambda_handler(event, _context):
             }
         user_id = query_params.get('userid')
         token = query_params.get('token')
-        print(f"Email: {email}")
-        if not email or not token:
-            print("Missing email or token")
+        if not user_id or not token:
+            print("Missing user_id or token")
             return {
                 'statusCode': 400,
                 'headers': {'Content-Type': 'text/html'},
@@ -52,7 +51,7 @@ def lambda_handler(event, _context):
             return {
                 'statusCode': 200,
                 'headers': {
-                    'Location': f'http://localhost:4200/confirmation-success?email={email}'
+                    'Location': f'http://localhost:4200/confirmation-success?userid={user_id}'
                 },
                 'body': json.dumps('Email already confirmed')
             }
@@ -65,7 +64,6 @@ def lambda_handler(event, _context):
             }
         table.update_item(
             Key={
-                'email': email,
                 'user_id': user[0]['user_id']
             },
             UpdateExpression='SET email_verified = :val1, verification_token = :val2',
@@ -78,7 +76,7 @@ def lambda_handler(event, _context):
         return {
             'statusCode': 302,
             'headers': {
-                'Location': f'http://localhost:4200/confirmation-success?email={email}'
+                'Location': f'http://localhost:4200/confirmation-success?userid={user_id}'
             }
         }
     except Exception as e:
