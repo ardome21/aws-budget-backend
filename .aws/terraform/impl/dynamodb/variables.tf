@@ -8,8 +8,8 @@ variable "partition_key" {
   type        = string
 }
 
-variable "secondary_index_key {
-  description = "Secondary index key for the DynamoDB table for Keys (optional)"
+variable "secondary_index_key" {
+  description = "Secondary index Key"
   type        = string
   default     = null
 }
