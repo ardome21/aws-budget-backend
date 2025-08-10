@@ -25,7 +25,7 @@ resource "aws_dynamodb_table" "this" {
   dynamic "global_secondary_index" {
     for_each = var.secondary_index_key != null ? [1] : []
     content {
-      name            = locals.index_name
+      name            = local.index_name
       hash_key        = var.secondary_index_key
       projection_type = "ALL"
     }
