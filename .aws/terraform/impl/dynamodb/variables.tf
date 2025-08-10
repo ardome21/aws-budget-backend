@@ -4,13 +4,14 @@ variable "table_name" {
 }
 
 variable "partition_key" {
-  description = "Partion Key"
+  description = "Partition Key"
   type        = string
 }
 
-variable "sort_key" {
-  description = "Sort Key"
+variable "secondary_index_key {
+  description = "Secondary index key for the DynamoDB table for Keys (optional)"
   type        = string
+  default     = null
 }
 
 variable "environment" {

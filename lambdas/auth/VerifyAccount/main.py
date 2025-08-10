@@ -17,7 +17,7 @@ def lambda_handler(event, _context):
                 'headers': {'Content-Type': 'text/html'},
                 'body': "Missing confirmation parameters"
             }
-        email = query_params.get('email')
+        user_id = query_params.get('userid')
         token = query_params.get('token')
         print(f"Email: {email}")
         if not email or not token:
@@ -30,7 +30,7 @@ def lambda_handler(event, _context):
         dynamodb = boto3.resource('dynamodb')
         table = dynamodb.Table('users-dev')
         response = table.query(
-            KeyConditionExpression=Key('email').eq(email)
+            KeyConditionExpression=Key('user_id').eq(user_id)
             )
         print(f"Response: {response}")
         user = response['Items']

@@ -63,22 +63,24 @@ def validate_email(email: str) -> bool:
     return re.match(email_pattern, email) is not None
 
 def check_user_exists(email: str) -> bool:
-    """Check if user already exists"""
+    """Check if user already exists using GSI on email"""
     try:
         response = users_table.query(
-            KeyConditionExpression=Key('email').eq(email)
-            )
-        return 'Item' in response
+            IndexName='email-index',
+            KeyConditionExpression=Key('email').eq(email),
+            Select='COUNT'
+        )
+        return response['Count'] > 0
     except Exception as e:
-        print(f"Error checking user existence: {str(e)}")
+        print(f"Error checking user existence: {e}")
         return False
 
-def send_email(user_email: str, user_first_name: str, user_last_name: str, verification_token: str):
+def send_email(user_email: str, user_first_name: str, user_last_name: str, user_id: str, verification_token: str):
     """Send end email using SES"""
     ses = boto3.client('ses', region_name='us-east-1')
     sender_email = 'ardome21+aws@gmail.com'
     subject = 'Confirm Email for Budget App'
-    confirmation_link = f"https://rci0hqwbeh.execute-api.us-east-1.amazonaws.com/verify-account?email={user_email}&token={verification_token}"
+    confirmation_link = f"https://rci0hqwbeh.execute-api.us-east-1.amazonaws.com/verify-account?userid={user_id}&token={verification_token}"
 
     body = f"""
     <html>
@@ -202,7 +204,7 @@ def lambda_handler(event, context):
             user_id=user_id
         )
         print(f"User created successfully: {email}")
-        send_email(email, firstName, lastName, verification_token)
+        send_email(email, firstName, lastName, user_id, verification_token)
         
         return {
             'statusCode': 201,

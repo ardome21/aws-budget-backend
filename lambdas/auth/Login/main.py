@@ -56,6 +56,7 @@ def login(event):
                 })
             }
         response = userTable.query(
+            IndexName='email-index',
             KeyConditionExpression=Key('email').eq(email)
             )
         if 'Items' not in response:
@@ -187,8 +188,9 @@ def verify_auth(event):
     except jwt.InvalidTokenError:
         return not_authenticated_response('Invalid token')
     response = userTable.query(
-            KeyConditionExpression=Key('email').eq(payload.get("email"))
-            )
+        IndexName='email-index',
+        KeyConditionExpression=Key('email').eq(payload.get("email"))
+    )
 
     if 'Items' not in response:
         return not_authenticated_response('User not found')
