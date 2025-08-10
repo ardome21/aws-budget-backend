@@ -8,6 +8,13 @@ variable "partition_key" {
   type        = string
 }
 
+variable "sort_key" {
+  description = "Sort Key"
+  type        = string
+  default     = null
+}
+
+
 variable "secondary_index_key" {
   description = "Secondary index Key"
   type        = string

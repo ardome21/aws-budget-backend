@@ -1,7 +1,9 @@
 import json
 import boto3
+from datetime import datetime
 from plaid.api import plaid_api
 from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
+from plaid.model.institutions_get_by_id_request import InstitutionsGetByIdRequest
 from plaid.configuration import Configuration
 from plaid.api_client import ApiClient
 from plaid import Environment
@@ -23,6 +25,44 @@ def exchange_public_token(client, public_token):
         'access_token': access_token,
         'item_id': item_id
     }
+
+def get_institution_name(client, access_token):
+    """Get institution name for"""
+    try:
+        from plaid.model.item_get_request import ItemGetRequest
+        request = ItemGetRequest(access_token=access_token)
+        response = client.item_get(request)
+        institution_id = response['item']['institution_id']
+        
+        # Get institution details
+        inst_request = InstitutionsGetByIdRequest(
+            institution_id=institution_id,
+            country_codes=[CountryCode('US')]
+        )
+        inst_response = client.institutions_get_by_id(inst_request)
+        return inst_response['institution']['name']
+    except Exception as e:
+        print(f"Could not fetch institution name: {e}")
+        return None
+    
+def store_plaid_connection(user_id, access_token, item_id, institution_name=None):
+    """Store the Plaid connection details in DynamoDB"""
+    dynamodb = boto3.resource('dynamodb')
+    table = dynamodb.Table('plaid_connections')
+    
+    item = {
+        'user_id': user_id,
+        'access_token': access_token,
+        'item_id': item_id,
+        'created_at': datetime.utcnow().isoformat(),
+        'status': 'active'
+    }
+    
+    if institution_name:
+        item['institution_name'] = institution_name
+    
+    table.put_item(Item=item)
+    return item
 
 def lambda_handler(event, context):
     http_method = event.get('httpMethod') or event.get('requestContext', {}).get('http', {}).get('method')
@@ -64,19 +104,38 @@ def lambda_handler(event, context):
             body = json.loads(event['body'])
         else:
             body = event['body']
+        user_id = body['user_id']
+        if not user_id:
+            raise Exception("No user id provided ")
         public_token = body['public_token']
-        if  not public_token:
+        if not public_token:
             raise Exception("No public token provided")
-        print(f"Public token received: {public_token}")
+        print(f"Public token received for {user_id}")
         
         tokens = exchange_public_token(client, public_token) 
         if not (tokens and tokens['access_token'] and tokens['item_id']):
             raise Exception("No tokens received")
-        print(f"Tokens received: {tokens}")       
+        institution_name = get_institution_name(client, tokens['access_token'])
+
+        stored_connection = store_plaid_connection(
+            user_id=user_id,
+            access_token=tokens['access_token'],
+            item_id=tokens['item_id'],
+            institution_name=institution_name
+        )
+        
+        print(f"Stored Plaid connection for user {user_id}")
+        
+        # Return success (don't send access_token back to frontend for security)
         return {
             'statusCode': 200,
             'headers': CORS_HEADERS,
-            'body': json.dumps(tokens)
+            'body': json.dumps({
+                'success': True,
+                'item_id': tokens['item_id'],
+                'institution_name': institution_name,
+                'message': 'Bank account connected successfully'
+            })
         }
         
     except Exception as e:
