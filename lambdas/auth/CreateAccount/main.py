@@ -18,11 +18,29 @@ def hash_password(password: str) -> str:
     combined = salt + pwdhash
     return base64.b64encode(combined).decode('utf-8')
 
+def generate_user_id():
+    """Generate unique id for user in format UID###"""
+    response = users_table.query(
+        KeyConditionExpression=Key('partition_key').eq('USER'),
+        ScanIndexForward=False,
+        Limit=1
+    )
+    
+    if response['Items']:
+        last_user_id = response['Items'][0]['user_id']
+        last_num = int(last_user_id[3:])
+        next_num = last_num + 1
+    else:
+        next_num = 1
+    
+    return f"UID{next_num:03d}"
+
 def create_user_record(email: str, firstName: str, lastName: str, hashed_password: str, verification_token: str):
     """Create user record in database"""
     timestamp = datetime.now(timezone.utc) .isoformat()
-    
+    user_id = generate_user_id()
     user_item = {
+        'user_id': user_id,
         'email': email,
         'first_name': firstName,
         'last_name': lastName,

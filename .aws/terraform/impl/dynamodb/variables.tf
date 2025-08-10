@@ -4,7 +4,12 @@ variable "table_name" {
 }
 
 variable "partition_key" {
-  description = "Name of the DynamoDB table"
+  description = "Partion Key"
+  type        = string
+}
+
+variable "sort_key" {
+  description = "Sort Key"
   type        = string
 }
 
