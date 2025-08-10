@@ -109,6 +109,7 @@ def login(event):
 
             userProfile = {
                     'email': email,
+                    'user_id': user['user_id'],
                     'first_name': user['first_name'],
                     'last_name': user['last_name']
                 }
@@ -198,6 +199,7 @@ def verify_auth(event):
 
     user_data = {
         "email": user.get("email"),
+        "user_id": user.get("user_id"),
         "first_name": user.get("first_name"),
         "last_name": user.get("last_name")
     }
