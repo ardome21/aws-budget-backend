@@ -59,7 +59,7 @@ def login(event):
             IndexName='email-index',
             KeyConditionExpression=Key('email').eq(email)
             )
-        if 'Items' not in response:
+        if 'Items' not in response['Items']:
             return {
                 'statusCode': 401,
                 'headers': CORS_HEADERS,
@@ -192,7 +192,7 @@ def verify_auth(event):
         KeyConditionExpression=Key('email').eq(payload.get("email"))
     )
 
-    if 'Items' not in response:
+    if 'Items' not in response['Items']:
         return not_authenticated_response('User not found')
 
     if len(response['Items']) > 1:
