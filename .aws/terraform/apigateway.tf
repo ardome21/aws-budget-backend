@@ -83,6 +83,18 @@ module "plaid_api" {
       lambda_name       = module.plaid_exchange_token_lambda.function_name
       lambda_invoke_arn = module.plaid_exchange_token_lambda.invoke_arn
     },
+    {
+      method            = "POST"
+      path              = "/get-account-details"
+      lambda_name       = module.plaid_get_account_details_lambda.function_name
+      lambda_invoke_arn = module.plaid_get_account_details_lambda..invoke_arn
+    },
+    {
+      method            = "OPTIONS"
+      path              = "/get-account-details"
+      lambda_name       = module.plaid_get_account_details_lambda.function_name
+      lambda_invoke_arn = module.plaid_get_account_details_lambda.invoke_arn
+    },
   ]
 }
 
