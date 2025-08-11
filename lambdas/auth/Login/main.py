@@ -155,11 +155,7 @@ def get_auth_token(event):
     return None
 
 def not_authenticated_response(message='Not authenticated'):
-    is_development = True
-    if is_development:
-        cookie_attributes = 'authToken=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=None'
-    else:
-        cookie_attributes = 'authToken=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Strict'
+    cookie_attributes = 'authToken=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=None'
     return {
         'statusCode': 200,
         'headers': {
@@ -202,12 +198,7 @@ def verify_auth(event):
         "last_name": user.get("last_name")
     }
 
-    is_development = True
-    if is_development:
-        cookie_attributes = f'authToken={token}; HttpOnly; Secure; SameSite=None; Max-Age=172800; Path=/'
-    else:
-        cookie_attributes = f'authToken={token}; HttpOnly; Secure; SameSite=Strict; Max-Age=172800; Path=/'
-
+    cookie_attributes = f'authToken={token}; HttpOnly; Secure; SameSite=None; Max-Age=172800; Path=/'
 
     return {
         'statusCode': 200,
