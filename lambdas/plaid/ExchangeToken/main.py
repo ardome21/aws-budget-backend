@@ -1,5 +1,6 @@
 import json
 import boto3
+from boto3.dynamodb.conditions import Attr
 from datetime import datetime
 from plaid.api import plaid_api
 from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
@@ -60,10 +61,20 @@ def encode_access_token(access_token, jwt_secret):
         return access_token
     
 def store_plaid_connection(user_id, access_token, item_id, institution_name):
-    """Store the Plaid connection details in DynamoDB"""
     dynamodb = boto3.resource('dynamodb')
     table = dynamodb.Table('plaid-connections-dev')
-    
+    response = table.scan(
+        FilterExpression=Attr('user_id').eq(user_id) & Attr('institution_name').eq(institution_name)
+    )
+    items = response.get('Items', [])
+    for existing_item in items:
+        print(f"Existing item found: {existing_item}")
+        table.delete_item(
+            Key={
+                'user_id': existing_item['user_id'],
+                'item_id': existing_item['item_id']
+            }
+        )
     item = {
         'user_id': user_id,
         'item_id': item_id,
