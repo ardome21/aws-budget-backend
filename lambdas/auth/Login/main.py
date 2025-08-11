@@ -125,7 +125,8 @@ def login(event):
                 'body': json.dumps({
                     'message': 'Login successful',
                     'user': userProfile,
-                        'expires_in': '86400 Second (24 hrs)'
+                    'token': token,
+                    "expires_in": 172800
                     })
                 }
         else:
@@ -208,8 +209,10 @@ def verify_auth(event):
         },
         'body': json.dumps({
             'success': 'true',
+            'message': 'Authenticated',
             'userData': user_data,
-            'message': 'Authenticated'
+            'token':    token,
+            'expires_in': 172800
         })
     }
 
