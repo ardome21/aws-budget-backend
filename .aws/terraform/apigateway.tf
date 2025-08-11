@@ -87,7 +87,7 @@ module "plaid_api" {
       method            = "POST"
       path              = "/get-account-details"
       lambda_name       = module.plaid_get_account_details_lambda.function_name
-      lambda_invoke_arn = module.plaid_get_account_details_lambda..invoke_arn
+      lambda_invoke_arn = module.plaid_get_account_details_lambda.invoke_arn
     },
     {
       method            = "OPTIONS"
