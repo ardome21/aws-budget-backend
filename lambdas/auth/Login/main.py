@@ -115,11 +115,7 @@ def login(event):
                     'last_name': user['last_name']
                 }
             print(f"User profile: {userProfile}")
-            is_development = True
-            if is_development:
-                cookie_attributes = f'authToken={token}; HttpOnly; Secure; SameSite=None; Max-Age=172800; Path=/'
-            else:
-                cookie_attributes = f'authToken={token}; HttpOnly; Secure; SameSite=Strict; Max-Age=172800; Path=/'
+            cookie_attributes = f'authToken={token}; HttpOnly; Secure; SameSite=None; Max-Age=172800; Path=/'
             return {
                 'statusCode': 200,
                 'headers': {

@@ -27,24 +27,29 @@ def get_auth_token(event):
             return cookie.split('=', 1)[1]
     return None
 
-# def verify_auth(user_id, event):
-#     token = get_auth_token(event)
-#     if not token:
-#         raise Exception
-#     try:
-#         jwt_secret = boto3.client('ssm').get_parameter(Name='/budget/jwt-secret-key', WithDecryption=True)['Parameter']['Value']
-#         payload = jwt.decode(token, jwt_secret, algorithms=['HS256'])
-#     except jwt.ExpiredSignatureError:
-#         raise
-#     except jwt.InvalidTokenError:
-#         raise
-#     response = userTable.query(
-#         KeyConditionExpression=Key('user_id').eq(user_id),
-#         FilterExpression=Attr('email').eq(payload.get('email'))
-#     )
-#     if not response['Items']:
-#         raise Exception
-#     return True
+def verify_auth(user_id, event):
+    token = get_auth_token(event)
+    if not token:
+        print("No token found")
+        raise Exception("No token found")
+    try:
+        jwt_secret = boto3.client('ssm').get_parameter(Name='/budget/jwt-secret-key', WithDecryption=True)['Parameter']['Value']
+        payload = jwt.decode(token, jwt_secret, algorithms=['HS256'])
+    except jwt.ExpiredSignatureError as e:
+        print(f"Expire Signature error: {e}")
+        raise e
+    except jwt.InvalidTokenError as e:
+        print(f"Invalid token: {e}")
+        raise e
+    response = userTable.query(
+        KeyConditionExpression=Key('user_id').eq(user_id),
+        FilterExpression=Attr('email').eq(payload.get('email'))
+    )
+    if not response['Items']:
+        print("No items")
+        print(f"response: {response}")
+        raise Exception("No items")
+    return True
 
 def get_access_token(user_id, institution):
 
@@ -91,7 +96,7 @@ def lambda_handler(event, context):
         print(f'Body: {body}')
         user_id = body['user_id']
         institution = body['institution']
-        # verify_auth(user_id, event)
+        verify_auth(user_id, event)
         access_token = get_access_token(user_id, institution)
         request = AccountsGetRequest(access_token=access_token)
         response = client.accounts_get(request)        
