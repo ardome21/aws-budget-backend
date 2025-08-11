@@ -54,5 +54,8 @@ module "plaid_get_account_details_lambda" {
   lambda_name          = "plaid-get-account-details-dev"
   source_file          = "../../lambdas/plaid/GetAccountDetails/main.py"
   existing_iam_role_arn = var.existing_iam_role_arn
-  lambda_layers         = [aws_lambda_layer_version.plaid_layer.arn]
+  lambda_layers         = [
+    aws_lambda_layer_version.plaid_layer.arn,
+    aws_lambda_layer_version.jwt_layer.arn
+    ]
 }
