@@ -62,14 +62,14 @@ def get_access_token(user_id, institution):
 
 def lambda_handler(event, context):
     try:
-        secrets_client = boto3.client("secretsmanager", region_name="us-east-1")
-        secret_value = secrets_client.get_secret_value(SecretId="plaid")
-        secret = json.loads(secret_value["SecretString"])
+        ssm_client = boto3.client('ssm')
+        client_id = ssm_client.get_parameter(Name='/budget/plaid/client_id', WithDecryption=True)['Parameter']['Value']
+        sandbox_secret = ssm_client.get_parameter(Name='/budget/plaid/sandbox_secret', WithDecryption=True)['Parameter']['Value']
         configuration = Configuration(
             host=Environment.Sandbox,
             api_key={
-                'clientId': secret['client_id'],
-                'secret': secret['sandbox_secret']
+                'clientId': client_id,
+                'secret': sandbox_secret
             }
         )
         
