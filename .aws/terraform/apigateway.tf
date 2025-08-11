@@ -1,4 +1,4 @@
-module "auth_api" {
+module "budget_api" {
   source   = "./impl/apigateway"
   api_name = "auth-api-dev"
 
@@ -50,15 +50,7 @@ module "auth_api" {
       path              = "/sign-up"
       lambda_name       = module.create_account_lambda.function_name
       lambda_invoke_arn = module.create_account_lambda.invoke_arn
-    }
-  ]
-}
-
-module "plaid_api" {
-  source   = "./impl/apigateway"
-  api_name = "plaid-api-dev"
-
-  routes = [
+    },
     {
       method            = "POST"
       path              = "/get-plaid-link"
