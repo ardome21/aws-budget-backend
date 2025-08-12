@@ -8,6 +8,10 @@ from plaid.api_client import ApiClient
 from plaid import Environment
 import jwt
 
+
+class BadRequestException(Exception):
+    pass
+
 dynamodb = boto3.resource('dynamodb')
 userTable = dynamodb.Table('users-dev')
 accessTable = dynamodb.Table('plaid-connections-dev')
@@ -49,17 +53,19 @@ def get_access_token(user_id, institution):
         KeyConditionExpression=Key('user_id').eq(user_id),
         FilterExpression=Attr('institution_name').eq(institution)
     )
-    print(f'User: {response}')
+    token = response['Items']
+    if not token:
+        raise BadRequestException(f"No plaid token found for {user_id} and {institution}")
+    if len(token) > 1:
+        raise BadRequestException(f"Multiple tokens found for {user_id} and {institution}")
     item = response['Items'][0]
-    print('Got access token')
     encrypted_access_token = item['access_token']
-    print(f'Access token: {encrypted_access_token}')
     jwt_secret = boto3.client('ssm').get_parameter(Name='/budget/jwt-secret-key', WithDecryption=True)['Parameter']['Value']
     decrypted_access_token = jwt.decode(encrypted_access_token, jwt_secret, algorithms=['HS256'])
     return decrypted_access_token['access_token']
 
 
-def lambda_handler(event, context):
+def lambda_handler(event, _context):
     try:
         http_method = event.get('httpMethod') or event.get(
             'requestContext', {}).get('http', {}).get('method')
@@ -111,7 +117,12 @@ def lambda_handler(event, context):
             'statusCode': 200,
             'body': json.dumps({'accounts': accounts})
         }
-        
+    except BadRequestException as e:
+        print(f'Bad Request: {str(e)}')
+        return {
+            'statusCode': 400,
+            'body': json.dumps({'error': str(e)})
+        }
     except Exception as e:
         print(f'Error: {str(e)}')
         return {
