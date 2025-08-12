@@ -7,19 +7,19 @@ def lambda_handler(event, _context):
         if http_method == 'OPTIONS':
             print("Handling OPTIONS preflight request")
             return
-        
-        cookie_attributes = f'authToken=; HttpOnly; Secure; SameSite=None; Max-Age=172800; Path=/'
-        if http_method == 'POST':
+        elif http_method == 'POST':
             print("Handling logout request")
+            cookie_attributes = f'authToken=; HttpOnly; Secure; SameSite=None; Max-Age=172800; Path=/'
             return {
                 'statusCode': 200,
-                'headers': {
-                    'Set-Cookie': cookie_attributes
-                },
-                'body': json.dumps({
-                    'success': True,
-                    'message': 'Successfully logged out'
-                })
+                'headers': {'Set-Cookie': cookie_attributes},
+                'body': json.dumps({'message': 'Successfully logged out'})
+            }
+        else:
+            print(f"Unsupported HTTP method: {http_method}")
+            return {
+                'statusCode': 405,
+                'body': json.dumps({'error': 'Method not allowed'})
             }
     except Exception as e:
         return {

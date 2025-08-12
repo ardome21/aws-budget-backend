@@ -147,7 +147,7 @@ def not_authenticated_response(message='Not authenticated'):
             'Set-Cookie': cookie_attributes
         },
         'body': json.dumps({
-            'success': 'false',
+            'success': False,
             'message': message
         }),
     }
@@ -190,7 +190,7 @@ def verify_auth(event):
             'Set-Cookie': cookie_attributes
         },
         'body': json.dumps({
-            'success': 'true',
+            'success': True,
             'message': 'Authenticated',
             'userData': user_data,
             'token':    token,
