@@ -146,8 +146,7 @@ def lambda_handler(event, _context):
             return {
                 'statusCode': 400,
                 'body': json.dumps({
-                    'error': f'Missing required fields: {", ".join(missing_fields)}',
-                    'success': False
+                    'error': f'Missing required fields: {", ".join(missing_fields)}'
                 })
             }
         
