@@ -72,38 +72,7 @@ def login(event):
                 })
             }
         stored_hash = user['password_hash']
-        if check_password(password, stored_hash):
-            user_id = user['user_id']
-            payload = {
-                'email': email,
-                'user_id': user_id,
-                'exp': datetime.now(timezone.utc) + timedelta(hours=48)
-            }
-
-            jwt_secret = boto3.client('ssm').get_parameter(Name='/budget/jwt-secret-key', WithDecryption=True)['Parameter']['Value']
-            token = jwt.encode(payload, jwt_secret, algorithm='HS256')
-
-            userProfile = {
-                    'email': email,
-                    'user_id': user['user_id'],
-                    'first_name': user['first_name'],
-                    'last_name': user['last_name']
-                }
-            print(f"User profile: {userProfile}")
-            cookie_attributes = f'authToken={token}; HttpOnly; Secure; SameSite=None; Max-Age=172800; Path=/'
-            return {
-                'statusCode': 200,
-                'headers': {
-                    'Set-Cookie': cookie_attributes
-                },
-                'body': json.dumps({
-                    'message': 'Login successful',
-                    'user': userProfile,
-                    'token': token,
-                    "expires_in": 172800
-                    })
-                }
-        else:
+        if not check_password(password,stored_hash):
             print("Password verification failed")
             return {
                 'statusCode': 401,
@@ -111,6 +80,36 @@ def login(event):
                     'error': 'Invalid credentials'
                 })
             }
+        user_id = user['user_id']
+        payload = {
+            'email': email,
+            'user_id': user_id,
+            'exp': datetime.now(timezone.utc) + timedelta(hours=48)
+        }
+        jwt_secret = boto3.client('ssm').get_parameter(Name='/budget/jwt-secret-key', WithDecryption=True)['Parameter']['Value']
+        token = jwt.encode(payload, jwt_secret, algorithm='HS256')
+        userProfile = {
+            'email': email,
+            'user_id': user['user_id'],
+            'first_name': user['first_name'],
+            'last_name': user['last_name']
+        }
+        print(f"User profile: {userProfile}")
+        cookie_attributes = f'authToken={token}; HttpOnly; Secure; SameSite=None; Max-Age=172800; Path=/'
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Set-Cookie': cookie_attributes
+            },
+            'body': json.dumps({
+                'message': 'Login successful',
+                'user': userProfile,
+                'token': token,
+                "expires_in": 172800
+                })
+            }
+
+            
     except Exception as e:
         print(f"Error logging in user: {e}")
         return {
