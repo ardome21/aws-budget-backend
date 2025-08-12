@@ -38,14 +38,17 @@ def verify_auth(event):
         print(f"Invalid token: {e}")
         raise e
     response = userTable.query(
-        KeyConditionExpression=Key('user_id').eq(payload.get('email')),
+        KeyConditionExpression=Key('user_id').eq(payload.get('user_id')),
         FilterExpression=Attr('email').eq(payload.get('email'))
     )
-    if not response['Items']:
-        print("No items")
-        print(f"response: {response}")
+    users = response['Items']
+    if not users:
+        print('No user found found matching bearer token')
         raise Exception("No items")
-    return True
+    if len(users) > 1:
+        print('Multiple users found matching bearer token? That cant be?')
+        raise Exception('Multiple users found matching bearer token? That cant be?')
+    return users[0].get('user_id')
 
 def get_access_token(user_id, institution):
 
@@ -91,10 +94,8 @@ def lambda_handler(event, _context):
             body = json.loads(event['body'])
         else:
             body = event['body']
-        print(f'Body: {body}')
-        user_id = body['user_id']
         institution = body['institution']
-        verify_auth(event)
+        user_id = verify_auth(event)
         access_token = get_access_token(user_id, institution)
         request = AccountsGetRequest(access_token=access_token)
         response = client.accounts_get(request)        
