@@ -73,7 +73,7 @@ def check_user_exists(email: str) -> bool:
         return response['Count'] > 0
     except Exception as e:
         print(f"Error checking user existence: {e}")
-        return False
+        raise e
 
 def send_email(user_email: str, user_first_name: str, user_last_name: str, user_id: str, verification_token: str):
     """Send end email using SES"""
@@ -116,41 +116,28 @@ def send_email(user_email: str, user_first_name: str, user_last_name: str, user_
                     'Body': {'Html': {'Data': body}}
                 }
             )
-            print(f"End email sent to {user_email}")
+            print(f"End user email sent to {user_email}")
             return False
     except Exception as e:
         print(f"Error sending end email: {str(e)}")
-        raise
+        raise e
 
-def lambda_handler(event, context):
+def lambda_handler(event, _context):
     """Main Lambda handler for creating users"""
-    
-    headers = {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS'
-    }
-    
     try:
         http_method = event.get('httpMethod') or event.get('requestContext', {}).get('http', {}).get('method')
         print(f"HTTP Method detected: {http_method}")
         
         if http_method == 'OPTIONS':
             print("Handling OPTIONS preflight request")
-            return {
-                'statusCode': 200,
-                'headers': headers,
-                'body': ''
-            }
+            return
         print("Handling POST request")
-        # Parse request body
+
         if isinstance(event['body'], str):
             body = json.loads(event['body'])
         else:
             body = event['body']
         
-        # Validate required fields
         required_fields = ['email', 'password', 'first_name', 'last_name']
         missing_fields = [field for field in required_fields if field not in body or not body[field]]
         
@@ -158,7 +145,6 @@ def lambda_handler(event, context):
             print(f"Missing required fields: {', '.join(missing_fields)}")
             return {
                 'statusCode': 400,
-                'headers': headers,
                 'body': json.dumps({
                     'error': f'Missing required fields: {", ".join(missing_fields)}',
                     'success': False
@@ -176,10 +162,8 @@ def lambda_handler(event, context):
             print(f"Invalid email format: {email}")
             return {
                 'statusCode': 400,
-                'headers': headers,
                 'body': json.dumps({
-                    'error': 'Invalid email format',
-                    'success': False
+                    'error': 'Invalid email format'
                 })
             }
         
@@ -187,22 +171,18 @@ def lambda_handler(event, context):
             print(f"Password too short: {password}")
             return {
                 'statusCode': 400,
-                'headers': headers,
                 'body': json.dumps({
-                    'error': 'Password must be at least 8 characters long',
-                    'success': False
-                })
+                    'error': 'Password must be at least 8 characters long'
+                    })
             }
         
         if check_user_exists(email):
             print(f"User already exists: {email}")
             return {
                 'statusCode': 409,
-                'headers': headers,
                 'body': json.dumps({
-                    'error': 'User with this email already exists',
-                    'success': False
-                })
+                    'error': 'User with this email already exists'
+                    })
             }
         
         hashed_password = hash_password(password)
@@ -223,40 +203,34 @@ def lambda_handler(event, context):
         if send_admin_email:
             return {
                 'statusCode': 202,
-                'headers': headers,
                 'body': json.dumps({
-                    'message': 'User created successfully, admin email sent',
+                    'message': 'User created successfully, Admin Email sent',
                     'user': {
                         'email': email,
                         'user_id': user_id,
                         'firstName': firstName,
                         'lastName': lastName
-                    },
-                    'success': True
+                    }
                 })
             }
         return {
             'statusCode': 201,
-            'headers': headers,
             'body': json.dumps({
-                'message': 'User created successfully: User email sent',
+                'message': 'User created successfully: User Email Sen',
                 'user': {
                     'email': email,
                     'user_id': user_id,
                     'firstName': firstName,
                     'lastName': lastName
-                },
-                'success': True
+                }
             })
         }
     
     except json.JSONDecodeError:
         return {
             'statusCode': 400,
-            'headers': headers,
             'body': json.dumps({
-                'error': 'Invalid JSON format',
-                'success': False
+                'error': 'Invalid JSON format'
             })
         }
     
@@ -264,9 +238,7 @@ def lambda_handler(event, context):
         print(f"Unexpected error: {str(e)}")
         return {
             'statusCode': 500,
-            'headers': headers,
             'body': json.dumps({
-                'error': 'Internal server error',
-                'success': False
+                'error': 'Internal server error'
             })
         }

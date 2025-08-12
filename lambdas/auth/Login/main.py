@@ -6,13 +6,6 @@ import boto3
 from boto3.dynamodb.conditions import Key
 import jwt
 
-CORS_HEADERS = {
-    'Access-Control-Allow-Origin': 'http://localhost:4200',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Credentials': 'true'
-}
-
 dynamodb = boto3.resource('dynamodb')
 userTable = dynamodb.Table('users-dev')
 
@@ -37,7 +30,6 @@ def login(event):
             print("ERROR: No body in request")
             return {
                 'statusCode': 400,
-                'headers': CORS_HEADERS,
                 'body': json.dumps({'error': 'Request body is required'})
             }
         body = json.loads(event['body']) if isinstance(
@@ -50,7 +42,6 @@ def login(event):
         if not email or not password:
             return {
                 'statusCode': 400,
-                'headers': CORS_HEADERS,
                 'body': json.dumps({
                     'error': 'Email and password are required'
                 })
@@ -62,7 +53,6 @@ def login(event):
         if not response['Items']:
             return {
                 'statusCode': 401,
-                'headers': CORS_HEADERS,
                 'body': json.dumps({
                     'error': 'User does not exist'
                 })
@@ -70,7 +60,6 @@ def login(event):
         if len(response['Items']) > 1:
             return {
                 'statusCode': 500,
-                'headers': CORS_HEADERS,
                 'body': json.dumps({
                     'error': 'Multiple users found'
                 })
@@ -81,7 +70,6 @@ def login(event):
         if not is_email_verified:
             return {
                 'statusCode': 401,
-                'headers': CORS_HEADERS,
                 'body': json.dumps({
                     'error': 'Email not verified'
                 })
@@ -90,7 +78,6 @@ def login(event):
             # User exists but no password hash
             return {
                 'statusCode': 401,
-                'headers': CORS_HEADERS,
                 'body': json.dumps({
                     'error': 'Invalid credentials'
                 })
@@ -119,7 +106,6 @@ def login(event):
             return {
                 'statusCode': 200,
                 'headers': {
-                    **CORS_HEADERS,
                     'Set-Cookie': cookie_attributes
                 },
                 'body': json.dumps({
@@ -133,7 +119,6 @@ def login(event):
             print("Password verification failed")
             return {
                 'statusCode': 401,
-                'headers': CORS_HEADERS,
                 'body': json.dumps({
                     'error': 'Invalid credentials'
                 })
@@ -142,7 +127,6 @@ def login(event):
         print(f"Error logging in user: {e}")
         return {
             'statusCode': 500,
-            'headers': CORS_HEADERS,
             'body': json.dumps({
                 'error': 'Internal server error'
             })
@@ -160,7 +144,6 @@ def not_authenticated_response(message='Not authenticated'):
     return {
         'statusCode': 200,
         'headers': {
-            **CORS_HEADERS,
             'Set-Cookie': cookie_attributes
         },
         'body': json.dumps({
@@ -204,7 +187,6 @@ def verify_auth(event):
     return {
         'statusCode': 200,
         'headers': {
-            **CORS_HEADERS,
             'Set-Cookie': cookie_attributes
         },
         'body': json.dumps({
@@ -235,14 +217,12 @@ def lambda_handler(event, _context):
             print(f"Unsupported HTTP method: {http_method}")
             return {
                 'statusCode': 405,
-                'headers': CORS_HEADERS,
                 'body': json.dumps({'error': 'Method not allowed'})
             }
     except Exception as e:
         print(f"Lambda error: {e}")
         return {
             'statusCode': 500,
-            'headers': CORS_HEADERS,
             'body': json.dumps({
                 'error': 'Internal server error'
             })

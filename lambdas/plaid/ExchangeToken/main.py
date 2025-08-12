@@ -11,13 +11,6 @@ from plaid.api_client import ApiClient
 from plaid import Environment
 from datetime import timezone, timedelta
 import jwt
- 
-CORS_HEADERS = {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, DELETE',
-        'Access-Control-Max-Age': '86400'
-    }
 
 def exchange_public_token(client, public_token):
     request = ItemPublicTokenExchangeRequest(public_token=public_token)
@@ -92,12 +85,7 @@ def lambda_handler(event, context):
     
     if http_method == 'OPTIONS':
         print("Handling OPTIONS preflight request")
-        return {
-            'statusCode': 200,
-            'headers': CORS_HEADERS,
-            'body': ''
-        }
-    
+        return
     try:
         http_method = event.get('httpMethod') or event.get(
             'requestContext', {}).get('http', {}).get('method')
@@ -148,7 +136,6 @@ def lambda_handler(event, context):
         print(f"Stored Plaid connection for user {user_id}")
         return {
             'statusCode': 200,
-            'headers': CORS_HEADERS,
             'body': json.dumps({
                 'success': True,
                 'item_id': tokens['item_id'],
@@ -161,6 +148,5 @@ def lambda_handler(event, context):
         print(f"Error: {str(e)}")
         return {
             'statusCode': 500,
-            'headers': CORS_HEADERS,
             'body': json.dumps({'error': str(e)})
         }
