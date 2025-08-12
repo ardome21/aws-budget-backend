@@ -14,8 +14,7 @@ def lambda_handler(event, _context):
             print("No query params")
             return {
                 'statusCode': 400,
-                'headers': {'Content-Type': 'text/html'},
-                'body': "Missing confirmation parameters"
+                'body': json.dumps({'error': 'Missing confirmation parameters'})
             }
         user_id = query_params.get('userid')
         token = query_params.get('token')
@@ -23,8 +22,7 @@ def lambda_handler(event, _context):
             print("Missing user_id or token")
             return {
                 'statusCode': 400,
-                'headers': {'Content-Type': 'text/html'},
-                'body': "Invalid confirmation link"
+                'body': json.dumps({'error': 'Invalid confirmation link'})
             }
         dynamodb = boto3.resource('dynamodb')
         table = dynamodb.Table('users-dev')
@@ -37,15 +35,13 @@ def lambda_handler(event, _context):
             print("User not found")
             return {
                 'statusCode': 400,
-                'headers': {'Content-Type': 'text/html'},
-                'body': "Invalid confirmation link"
+                'body': json.dumps({'error': 'Invalid confirmation link'})
             }
         if len(user) > 1:
             print("Multiple users found")
             return {
                 'statusCode': 400,
-                'headers': {'Content-Type': 'text/html'},
-                'body': "Invalid confirmation link"
+                'body': json.dumps({'error': 'Invalid confirmation link'})
             }
         if user[0]['email_verified'] == True:
             return {
@@ -53,14 +49,13 @@ def lambda_handler(event, _context):
                 'headers': {
                     'Location': f'http://localhost:4200/confirmation-success?userid={user_id}'
                 },
-                'body': json.dumps('Email already confirmed')
+                'body': json.dumps({'message': 'Email already confirmed'})
             }
         if user[0]['verification_token'] != token:
             print("Invalid token")
             return {
                 'statusCode': 400,
-                'headers': {'Content-Type': 'text/html'},
-                'body': "Invalid Token"
+                'body': json.dumps({'error': 'Invalid Token'})
             }
         table.update_item(
             Key={
@@ -83,7 +78,5 @@ def lambda_handler(event, _context):
         print(f"Error verifying email: {e}")
         return {
             'statusCode': 500,
-            'headers': {'Content-Type': 'text/html'},
-            'body': "Internal server error",
-            'error': str(e)
+            'body': json.dumps({'error': f"Internal server error: {e}"})
         }

@@ -8,14 +8,6 @@ from plaid.api_client import ApiClient
 from plaid import Environment
 import jwt
 
-
-CORS_HEADERS = {
-    'Access-Control-Allow-Origin': 'http://localhost:4200',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Credentials': 'true'
-}
-
 dynamodb = boto3.resource('dynamodb')
 userTable = dynamodb.Table('users-dev')
 accessTable = dynamodb.Table('plaid-connections-dev')
@@ -117,7 +109,6 @@ def lambda_handler(event, context):
         
         return {
             'statusCode': 200,
-            'headers': CORS_HEADERS,
             'body': json.dumps({'accounts': accounts})
         }
         
