@@ -1,6 +1,6 @@
 import json
 import boto3
-from boto3.dynamodb.conditions import Attr
+from boto3.dynamodb.conditions import Key, Attr
 from datetime import datetime
 from plaid.api import plaid_api
 from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
@@ -11,6 +11,43 @@ from plaid.api_client import ApiClient
 from plaid import Environment
 from datetime import timezone, timedelta
 import jwt
+
+dynamodb = boto3.resource('dynamodb')
+userTable = dynamodb.Table('users-dev')
+
+def get_auth_token(event):
+    cookies = event.get('cookies', [])
+    for cookie in cookies:
+        if cookie.startswith('authToken='):
+            return cookie.split('=', 1)[1]
+    return None
+
+def verify_auth(event):
+    token = get_auth_token(event)
+    if not token:
+        print("No token found")
+        raise Exception("No token found")
+    try:
+        jwt_secret = boto3.client('ssm').get_parameter(Name='/budget/jwt-secret-key', WithDecryption=True)['Parameter']['Value']
+        payload = jwt.decode(token, jwt_secret, algorithms=['HS256'])
+    except jwt.ExpiredSignatureError as e:
+        print(f"Expire Signature error: {e}")
+        raise e
+    except jwt.InvalidTokenError as e:
+        print(f"Invalid token: {e}")
+        raise e
+    response = userTable.query(
+        KeyConditionExpression=Key('user_id').eq(payload.get('user_id')),
+        FilterExpression=Attr('email').eq(payload.get('email'))
+    )
+    users = response['Items']
+    if not users:
+        print('No user found found matching bearer token')
+        raise Exception("No items")
+    if len(users) > 1:
+        print('Multiple users found matching bearer token? That cant be?')
+        raise Exception('Multiple users found matching bearer token? That cant be?')
+    return users[0].get('user_id')
 
 def exchange_public_token(client, public_token):
     request = ItemPublicTokenExchangeRequest(public_token=public_token)
@@ -92,7 +129,7 @@ def lambda_handler(event, context):
         if http_method == 'OPTIONS':
             print("Handling OPTIONS preflight request")
             return
-
+        user_id = verify_auth(event)
         ssm_client = boto3.client('ssm')
         client_id = ssm_client.get_parameter(Name='/budget/plaid/client_id', WithDecryption=True)['Parameter']['Value']
         sandbox_secret = ssm_client.get_parameter(Name='/budget/plaid/sandbox_secret', WithDecryption=True)['Parameter']['Value']
@@ -115,9 +152,6 @@ def lambda_handler(event, context):
             body = json.loads(event['body'])
         else:
             body = event['body']
-        user_id = body['user_id']
-        if not user_id:
-            raise Exception("No user id provided ")
         public_token = body['public_token']
         if not public_token:
             raise Exception("No public token provided")
@@ -127,7 +161,7 @@ def lambda_handler(event, context):
             raise Exception("No tokens received")
         institution_name = get_institution_name(client, tokens['access_token'])
         encrypted_access_token = encode_access_token(tokens['access_token'], jwt_secret)
-        stored_connection = store_plaid_connection(
+        store_plaid_connection(
             user_id=user_id,
             access_token=encrypted_access_token,
             item_id=tokens['item_id'],

@@ -37,8 +37,6 @@ def login(event):
 
         email = body.get('email')
         password = body.get('password')
-        print(f"Email: {email}")
-
         if not email or not password:
             return {
                 'statusCode': 400,
@@ -66,7 +64,6 @@ def login(event):
             }
         user = response['Items'][0]
         is_email_verified = user['email_verified']
-        stored_hash = user['password_hash']
         if not is_email_verified:
             return {
                 'statusCode': 401,
@@ -74,21 +71,12 @@ def login(event):
                     'error': 'Email not verified'
                 })
             }
-        if not stored_hash:
-            # User exists but no password hash
-            return {
-                'statusCode': 401,
-                'body': json.dumps({
-                    'error': 'Invalid credentials'
-                })
-            }
-        
-
-        # Verify the password
+        stored_hash = user['password_hash']
         if check_password(password, stored_hash):
-            print("Password verified")
+            user_id = user['user_id']
             payload = {
                 'email': email,
+                'user_id': user_id,
                 'exp': datetime.now(timezone.utc) + timedelta(hours=48)
             }
 
@@ -164,8 +152,7 @@ def verify_auth(event):
     except jwt.InvalidTokenError:
         return not_authenticated_response('Invalid token')
     response = userTable.query(
-        IndexName='email-index',
-        KeyConditionExpression=Key('email').eq(payload.get("email"))
+        KeyConditionExpression=Key('user_id').eq(payload.get("user_id"))
     )
 
     if not response['Items']:

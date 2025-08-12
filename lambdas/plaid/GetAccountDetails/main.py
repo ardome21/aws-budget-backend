@@ -23,7 +23,7 @@ def get_auth_token(event):
             return cookie.split('=', 1)[1]
     return None
 
-def verify_auth(user_id, event):
+def verify_auth(event):
     token = get_auth_token(event)
     if not token:
         print("No token found")
@@ -38,7 +38,7 @@ def verify_auth(user_id, event):
         print(f"Invalid token: {e}")
         raise e
     response = userTable.query(
-        KeyConditionExpression=Key('user_id').eq(user_id),
+        KeyConditionExpression=Key('user_id').eq(payload.get('email')),
         FilterExpression=Attr('email').eq(payload.get('email'))
     )
     if not response['Items']:
@@ -94,7 +94,7 @@ def lambda_handler(event, _context):
         print(f'Body: {body}')
         user_id = body['user_id']
         institution = body['institution']
-        verify_auth(user_id, event)
+        verify_auth(event)
         access_token = get_access_token(user_id, institution)
         request = AccountsGetRequest(access_token=access_token)
         response = client.accounts_get(request)        

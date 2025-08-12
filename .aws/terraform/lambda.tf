@@ -35,7 +35,10 @@
   lambda_name          = "plaid-create-link-dev"
   source_file          = "../../lambdas/plaid/CreateLink/main.py"
   existing_iam_role_arn = var.existing_iam_role_arn
-  lambda_layers         = [aws_lambda_layer_version.plaid_layer.arn]
+  lambda_layers         = [
+    aws_lambda_layer_version.plaid_layer.arn,
+    aws_lambda_layer_version.jwt_layer.arn
+  ]
 }
 
   module "plaid_exchange_token_lambda" {
