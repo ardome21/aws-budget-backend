@@ -110,17 +110,20 @@ def login(event):
         }
         jwt_secret = boto3.client('ssm').get_parameter(Name='/budget/jwt-secret-key', WithDecryption=True)['Parameter']['Value']
         access_token = jwt.encode(payload, jwt_secret, algorithm='HS256')
+        print(f"Access token: {access_token}")
 
         # Create/Update Refesh Token
         refresh_token = base64.urlsafe_b64encode(
             boto3.client('kms').generate_random(NumberOfBytes=32)['Plaintext']
         ).decode('utf-8')
-        refresh_cookie = f'authToken={refresh_token}; HttpOnly; Secure; SameSite=None; Max-Age=604800; Path=/'
+        print(f"Refresh token: {refresh_token}")
+        refresh_cookie = f'refresh_token={refresh_token}; HttpOnly; Secure; SameSite=None; Max-Age=604800; Path=/'
         # Create CRSF
         csrf_token = base64.urlsafe_b64encode(
             boto3.client('kms').generate_random(
             NumberOfBytes=32)['Plaintext']
         ).decode('utf-8')
+        print(f"CSRF token: {csrf_token}")
         csrf_cookie = f'csrf_token={csrf_token}; Secure; Samesite=None; Path=/'
         # Save tokens in DB
         securely_store_server_tokens(refresh_token, csrf_token, user_id)
@@ -133,11 +136,13 @@ def login(event):
             'last_name': user['last_name']
         }
         print(f"User profile: {userProfile}")
+        print(f"Access token: {access_token}")
+        print(f"Refresh token: {refresh_token}")
+        print(f"CSRF token: {csrf_token}")
         return {
             'statusCode': 200,
             'headers': {
-                'Set-Cookie': [refresh_cookie, csrf_cookie],
-
+                'Set-Cookie': f"{refresh_cookie}, {csrf_cookie}"
             },
             'body': json.dumps({
                 'message': 'Login successful',
@@ -156,18 +161,23 @@ def login(event):
         }
     
 def get_auth_token(event):
+    refresh_token: str
+    csrf_token: str
     cookies = event.get('cookies', [])
     for cookie in cookies:
-        if cookie.startswith('authToken='):
-            return cookie.split('=', 1)[1]
-    return None
+        if cookie.startswith('refresh_token='):
+            refresh_token = cookie.split('=', 1)[1]
+        if cookie.startswith('csrf_token='):
+            csrf_token = cookie.split('=', 1)[1]
+    return refresh_token, csrf_token
 
 def not_authenticated_response(message='Not authenticated'):
-    cookie_attributes = 'authToken=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=None'
+    refresh_cookie = 'refresh_token=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=None'
+    csrf_cookie = f'csrf_token=; Secure; Samesite=None; Path=/'
     return {
         'statusCode': 200,
         'headers': {
-            'Set-Cookie': cookie_attributes
+            'Set-Cookie': f"{refresh_cookie}, {csrf_cookie}"
         },
         'body': json.dumps({
             'success': False,
@@ -176,18 +186,17 @@ def not_authenticated_response(message='Not authenticated'):
     }
 
 def verify_auth(event):
-    token = get_auth_token(event)
-    if not token:
+
+    # Get Refresh and CSRF token
+    refresh_token, csrf_token = get_auth_token(event)
+    # Verify correctness of tokens
+    user_id, refresh_token, csrf_token = validate_and_refresh_tokens(
+        refresh_token, csrf_token)
+    
+    if not user_id:
         return not_authenticated_response()
-    try:
-        jwt_secret = boto3.client('ssm').get_parameter(Name='/budget/jwt-secret-key', WithDecryption=True)['Parameter']['Value']
-        payload = jwt.decode(token, jwt_secret, algorithms=['HS256'])
-    except jwt.ExpiredSignatureError:
-        return not_authenticated_response('Token expired')
-    except jwt.InvalidTokenError:
-        return not_authenticated_response('Invalid token')
     response = userTable.query(
-        KeyConditionExpression=Key('user_id').eq(payload.get("user_id"))
+        KeyConditionExpression=Key('user_id').eq(user_id)
     )
 
     if not response['Items']:
@@ -204,18 +213,29 @@ def verify_auth(event):
         "last_name": user.get("last_name")
     }
 
-    cookie_attributes = f'authToken={token}; HttpOnly; Secure; SameSite=None; Max-Age=172800; Path=/'
+    payload = {
+        'email': user.get('email'),
+        'user_id': user_id,
+        'iat': datetime.now(timezone.utc),
+        'exp': datetime.now(timezone.utc) + timedelta(minutes=30)
+    }
+    jwt_secret = boto3.client('ssm').get_parameter(Name='/budget/jwt-secret-key', WithDecryption=True)['Parameter']['Value']
+    access_token = jwt.encode(payload, jwt_secret, algorithm='HS256')
+    print(f"Access token: {access_token}")
+    
+    refresh_cookie = f'refresh_token={refresh_token}; HttpOnly; Secure; SameSite=None; Max-Age=604800; Path=/'
+    csrf_cookie = f'csrf_token={csrf_token}; Secure; Samesite=None; Path=/'
 
     return {
         'statusCode': 200,
         'headers': {
-            'Set-Cookie': cookie_attributes
+            'Set-Cookie': f"{refresh_cookie}, {csrf_cookie}"
         },
         'body': json.dumps({
             'success': True,
             'message': 'Authenticated',
             'userData': user_data,
-            'token':    token,
+            'token':    access_token,
             'expires_in': 172800
         })
     }
