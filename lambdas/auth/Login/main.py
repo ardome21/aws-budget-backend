@@ -124,7 +124,7 @@ def login(event):
             NumberOfBytes=32)['Plaintext']
         ).decode('utf-8')
         print(f"CSRF token: {csrf_token}")
-        csrf_cookie = f'csrf_token={csrf_token}; Secure; Samesite=None; Path=/'
+        csrf_cookie = f'csrf_token={csrf_token}; Secure; SameSite=None; Path=/'
         # Save tokens in DB
         securely_store_server_tokens(refresh_token, csrf_token, user_id)
 
@@ -173,7 +173,7 @@ def get_auth_token(event):
 
 def not_authenticated_response(message='Not authenticated'):
     refresh_cookie = 'refresh_token=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=None'
-    csrf_cookie = f'csrf_token=; Secure; Samesite=None; Path=/'
+    csrf_cookie = f'csrf_token=; Secure; SameSite=None; Path=/'
     return {
         'statusCode': 200,
         'headers': {
@@ -190,6 +190,10 @@ def verify_auth(event):
     # Get Refresh and CSRF token
     refresh_token, csrf_token = get_auth_token(event)
     # Verify correctness of tokens
+    return {
+        'status': 202,
+        'message': 'stopped early'
+    }
     user_id, refresh_token, csrf_token = validate_and_refresh_tokens(
         refresh_token, csrf_token)
     
@@ -224,7 +228,7 @@ def verify_auth(event):
     print(f"Access token: {access_token}")
     
     refresh_cookie = f'refresh_token={refresh_token}; HttpOnly; Secure; SameSite=None; Max-Age=604800; Path=/'
-    csrf_cookie = f'csrf_token={csrf_token}; Secure; Samesite=None; Path=/'
+    csrf_cookie = f'csrf_token={csrf_token}; Secure; SameSite=None; Path=/'
 
     return {
         'statusCode': 200,
