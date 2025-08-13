@@ -14,3 +14,10 @@ module "plaid_connections_table" {
   secondary_index_key = "email"
   environment   = "dev"
 }
+
+module "budget_auth_token_table" {
+  source        = "./impl/dynamodb"
+  table_name    = "budget-auth-token-dev"
+  partition_key = "user_id"
+  environment   = "dev"
+}

@@ -3,11 +3,14 @@ import base64
 import json
 from datetime import datetime, timedelta, timezone
 import boto3
+import time
+import base64
 from boto3.dynamodb.conditions import Key
 import jwt
 
 dynamodb = boto3.resource('dynamodb')
 userTable = dynamodb.Table('users-dev')
+tokenTable = dynamodb.Table('budget-auth-token-dev')
 
 
 def check_password(password: str, stored_hash: str) -> bool:
@@ -21,7 +24,24 @@ def check_password(password: str, stored_hash: str) -> bool:
         return computed_password_hash == stored_pwdhash
     except Exception as e:
         print(f"Password verification error: {e}")
-        return False
+        raise e
+    
+def securely_store_server_tokens(refresh_token, csrf_token, user_id):
+    try:
+        hashed_refresh = hashlib.sha256(refresh_token.encode()).hexdigest()
+        ttl = int(time.time()) + 7 * 24 * 60 * 60
+        tokenTable.put_item(
+            Item={
+                'user_id': str(user_id),
+                'refresh_token': hashed_refresh,
+                'csrf_token': csrf_token,
+                'expires_at': ttl
+            }
+        )
+        print(f"Tokens securely stored for user {user_id} with 1-week TTL")
+    except Exception as e:
+        print(f"Failed to securely store server tokens for user {user_id}: {e}")
+        raise e
 
 def login(event):
     """Login user"""
@@ -81,13 +101,31 @@ def login(event):
                 })
             }
         user_id = user['user_id']
+        # Create Access Token
         payload = {
             'email': email,
             'user_id': user_id,
-            'exp': datetime.now(timezone.utc) + timedelta(hours=48)
+            'iat': datetime.now(timezone.utc),
+            'exp': datetime.now(timezone.utc) + timedelta(minutes=30)
         }
         jwt_secret = boto3.client('ssm').get_parameter(Name='/budget/jwt-secret-key', WithDecryption=True)['Parameter']['Value']
-        token = jwt.encode(payload, jwt_secret, algorithm='HS256')
+        access_token = jwt.encode(payload, jwt_secret, algorithm='HS256')
+
+        # Create/Update Refesh Token
+        refresh_token = base64.urlsafe_b64encode(
+            boto3.client('kms').generate_random(NumberOfBytes=32)['Plaintext']
+        ).decode('utf-8')
+        refresh_cookie = f'authToken={refresh_token}; HttpOnly; Secure; SameSite=None; Max-Age=604800; Path=/'
+        # Create CRSF
+        csrf_token = base64.urlsafe_b64encode(
+            boto3.client('kms').generate_random(
+            NumberOfBytes=32)['Plaintext']
+        ).decode('utf-8')
+        csrf_cookie = f'csrf_token={csrf_token}; Secure; Samesite=None; Path=/'
+        # Save tokens in DB
+        securely_store_server_tokens(refresh_token, csrf_token, user_id)
+
+
         userProfile = {
             'email': email,
             'user_id': user['user_id'],
@@ -95,21 +133,19 @@ def login(event):
             'last_name': user['last_name']
         }
         print(f"User profile: {userProfile}")
-        cookie_attributes = f'authToken={token}; HttpOnly; Secure; SameSite=None; Max-Age=172800; Path=/'
         return {
             'statusCode': 200,
             'headers': {
-                'Set-Cookie': cookie_attributes
+                'Set-Cookie': [refresh_cookie, csrf_cookie],
+
             },
             'body': json.dumps({
                 'message': 'Login successful',
                 'user': userProfile,
-                'token': token,
-                "expires_in": 172800
+                'token': access_token,
+                "expires_in": 1800
                 })
-            }
-
-            
+            }       
     except Exception as e:
         print(f"Error logging in user: {e}")
         return {
